@@ -22,6 +22,8 @@ unsigned char code shift[8] =  {0x80,0x40,0x20,0x10,0x08,0x04,0x02,0x01};
 unsigned char  pdata  regen[8] = {'1','2','3','4','5','6','7','8'};
 void Timer_Init()
 {
+		    //TMOD      = 0x01;
+			//TMR2CN    = 0x28;
     TMOD      = 0x01;
     TMR2CN    = 0x28;
 }
@@ -69,17 +71,19 @@ void Oscillator_Init()
 
 void Interrupts_Init()
 {
-    IT01CF    = 0x76;
-    IE        = 0xC7;
+    //IT01CF    = 0x76;
+    //IE        = 0xC7;
+	IT01CF    = 0x76;
+    IE        = 0x82;
 }
  void start_timer0(void)
 
     {
-      TMOD |=2;
-      TH0 = 0x10;
+     // TMOD |=2;
+     // TH0 = 0x10;
       TR0=1;
       ET0=1;
-      EA=1;
+     // EA=1;
     }
 // Initialization function for device,
 // Call Init_Device() from your main program
@@ -87,14 +91,28 @@ void Init_Device(void)
 {
 	
 	jj= 1;
+	ii = 0;
     Timer_Init();
     SPI_Init();
     Port_IO_Init();
     Oscillator_Init();
+	  start_timer0();
+
     Interrupts_Init();
-	 start_timer0();
-}
-void Timer0 (void) interrupt 1
+	} 
+
+void main(void)
+	{
+		PCA0MD &= ~0x40; 
+			Init_Device();
+			while (1); 
+				{
+					_nop_();
+				}
+			
+			
+	}
+	void Timer0 (void) interrupt 1
 
    {   
    		
@@ -123,10 +141,3 @@ void Timer0 (void) interrupt 1
      TR0=1;
 
    }
-void main(void)
-	{
-			Init_Device();
-			while (1) {}
-			
-			
-	}
