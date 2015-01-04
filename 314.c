@@ -11,12 +11,88 @@
 #include <intrins.h> 
 #include <math.h>
 #include <stdlib.h>
-
+#include "F350_FlashPrimitives.h"
 
 
 // Peripheral specific initialization functions,
 // Called from the Init_Device() function
 
+
+ unsigned int xdata max_weight,cell_weight;
+ long xdata sred;
+ union zap
+   {  char ch[4];
+   long lo;
+   };
+ int xdata tara;
+ 
+ 
+ union  Crr
+ {
+   unsigned int Int;
+   unsigned char Char[2];
+   
+ };
+ union  Crr2
+ {
+   int Int;
+   char Char[2];
+   
+ };
+ union Crr xdata Crc_send,Crc1_send;
+ unsigned char xdata tek_ves1[8],tek_ves2[8],tek_ves3[8],zad_ves1[8],zad_ves2[8],zad_ves3[8],granica;
+
+ struct constanta 
+   {
+	union Crr2 zad_ves1_int;		  // целое
+	union Crr2 zad_ves2_int;		  // целое
+	union Crr2 zad_ves3_int;		  // целое
+	union zap dad1;					  // длинное целое
+	union zap dad2;					  // 
+	union zap dad3;					  // длинное целое
+    union zap dad4;					  // длинное целое
+	union zap dad5;					  // длинное целое
+	union zap dad6;					  // длинное целое
+	union zap zero1;				  // длинное целое
+	union zap zero2;				  // длинное целое
+	union zap zero3;				  // длинное целое
+    union zap zero4;				  // длинное целое
+	union zap zero5;				  // длинное целое
+	union zap zero6;				  // длинное целое
+    union Crr2 cell_weight1;		  // целое
+	union Crr2 cell_weight2;		  // целое
+	union Crr2 cell_weight3;		  // целое
+	union Crr2 cell_weight4;		  // целое
+    union Crr2 cell_weight5;		  // целое
+	union Crr2 cell_weight6;		  // целое
+
+	union Crr2 max_weight1;			 // целое
+    union Crr2 max_weight2;			 // целое
+	union Crr2 max_weight3;			 // целое
+	union Crr2 max_weight4;			 // целое
+	union Crr2 max_weight5;			 // целое
+    union Crr2 max_weight6;			 // целое
+
+     union zap avto_null1;				 // длинное целое
+	union zap avto_null2;				 // длинное целое
+	union zap avto_null3;				 // длинное целое
+	union zap avto_null4;				 // длинное целое
+     union zap avto_null5;				 // длинное целое
+	union zap avto_null6;				 // длинное целое
+	
+  };
+ struct constanta coc;
+
+
+ union global 
+	{ struct constanta co;
+	  char con[sizeof(coc)];
+	};
+
+
+ union global xdata AA;
+
+ FLADDR xdata addr; 
  unsigned char  idata ii,jj;
  unsigned char idata yt;
  unsigned char code shift[8] =  {0x80,0x40,0x20,0x10,0x08,0x04,0x02,0x01};
@@ -26,7 +102,27 @@
 
  unsigned char  pdata  regen[8] = {'1','2','3','4','5','6','7','8'};
  
- 
+ void point(int f, char xdata *hu)
+	 	{
+			
+		int t;
+			hu[0] = '<';
+			if (f >= 0)
+				hu[0] = ' ';
+			else 
+				hu[0] = '-';
+				f = abs(f);
+			t = f / 100;
+				hu[1] = t + '0';
+		    t = f % 100;
+        	t = t / 10;
+			hu[2] = t + '0';
+            t = f % 100;
+        	t = t % 10;
+			hu[3] = t+'0';
+            hu[4] = 0;
+      	} 
+
  
 void Timer_Init()
 {
@@ -108,11 +204,89 @@ void Init_Device(void)
 
     Interrupts_Init();
 	} 
+//********************************
+	//
+	//	  запись FLASH
+	//
+	//********************************
 
+	void init_write(void)
+		{  
+		char I;
+   
+		//AA.co.zad_ves1_int.Int = 500;
+ 		point(AA.co.zad_ves1_int.Int,&zad_ves1);
+ 		//AA.co.zad_ves2_int.Int = 120;
+ 		point(AA.co.zad_ves2_int.Int,&zad_ves2);		   
+ 		//AA.co.zad_ves3_int.Int = 50;
+ 		point(AA.co.zad_ves3_int.Int,&zad_ves3);
+ 		/*
+ 		AA.co.dad1.lo = 2793314;
+		AA.co.zero1.lo =243606;
+		AA.co.dad2.lo = 2788880;
+		AA.co.zero2.lo =278228;
+		AA.co.dad3.lo = 2836009;
+		AA.co.zero3.lo =254833;
+		AA.co.dad4.lo = 12931138;
+		AA.co.zero4.lo =1222894;
+		AA.co.dad5.lo = 12958486;
+		AA.co.zero5.lo =1365327;
+		AA.co.dad6.lo = 12925383;
+		AA.co.zero6.lo =1358715;
+		  */
+
+		FLASH_PageErase((FLADDR) addr);
+		for (I=0;I<sizeof(AA);I++)
+				FLASH_ByteWrite ((FLADDR)addr+I,AA.con[I]);
+
+	}	
+	
+	
+	//**********************
+	//
+	//
+	//	 чтение FLASH
+	//
+	//
+	//**********************
+	
+	
+void init_read(void)
+		{
+		char i;
+		for (i=0;i<sizeof(AA);i++)
+   				AA.con[i]=FLASH_ByteRead ((FLADDR)addr+i);
+
+		//AA.co.zad_ves1_int.Char[0]=FLASH_ByteRead ((FLADDR)addr);
+		//AA.co.zad_ves1_int.Char[1]=FLASH_ByteRead ((FLADDR)addr+1);
+ 		point(AA.co.zad_ves1_int.Int,&zad_ves1);
+		//AA.co.zad_ves2_int.Char[0]=FLASH_ByteRead ((FLADDR)addr+2);
+		//AA.co.zad_ves2_int.Char[1]=FLASH_ByteRead ((FLADDR)addr+3);
+
+        point(AA.co.zad_ves2_int.Int,&zad_ves2);
+		//AA.co.zad_ves3_int.Char[0]=FLASH_ByteRead ((FLADDR)addr+4);
+		//AA.co.zad_ves3_int.Char[1]=FLASH_ByteRead ((FLADDR)addr+5);
+
+ 		point(AA.co.zad_ves3_int.Int,&zad_ves3);
+
+
+	//	point(AA.co.zad_ves3_int.Int,&zad_ves3);
+
+	//	cell_weight1;
+
+	//	  	cell_weight = 500;
+	//	sprintf(cell_weight_char,"%#4.4u",AA.co.cell_weight1); 
+		}
+	
+	
+	
+	
 void main(void)
 	{
 			PCA0MD &= ~0x40; 
 			Init_Device();
+			addr=0x7c00-512;
+			
 			while (1); 
 				{
 					_nop_();
