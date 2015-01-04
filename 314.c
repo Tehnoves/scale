@@ -2,6 +2,7 @@
 //  Проект весы для Андреевича     //
 //  процессор F314
 //  03.01.15 старт
+//  04.01.15 флэш 
 /////////////////////////////////////
 
 #include "compiler_defs.h"
@@ -12,10 +13,31 @@
 #include <math.h>
 #include <stdlib.h>
 #include "F350_FlashPrimitives.h"
-
-
+#define ON              0x01
+#define OFF             0x00 
+#define pervij		   0x00
+#define vtoroi		   0x01
 // Peripheral specific initialization functions,
 // Called from the Init_Device() function
+
+union
+	{
+  unsigned long Long;
+  unsigned char Byte[4];
+	} xdata ADC;
+	
+	
+bit flag_ocifrovka;
+bit ADC_buf_overflov;
+bit ADC_buf_empty=1; 
+							 //  for ADC
+#define Len_ADC_Buf 16       //16
+unsigned long xdata ADC_buf[Len_ADC_Buf];
+unsigned long xdata *start_ADC_buf;
+unsigned long xdata *end_ADC_buf;
+
+unsigned long xdata ADC_srednee;
+  unsigned long xdata rrez1=0,rrez1_copy=0,rrez2=0,rrez2_copy=0;
 
 
  unsigned int xdata max_weight,cell_weight;
@@ -123,7 +145,72 @@
             hu[4] = 0;
       	} 
 
- 
+ //******************************
+//
+//	 наверное скользящее целое
+//
+//******************************
+
+
+
+void ADC_calculate(void)
+
+	{ // static unsigned long sred;
+   	ADC.Byte[1]=1;//ADC0H;
+   	ADC.Byte[2]=2;//ADC0M;
+   	ADC.Byte[3]=3;//ADC0L;
+
+   	if(ADC_buf_empty)						// флаг пустого буфера
+       {									// Time_request = 0;
+						 start_ADC_buf 		= ADC_buf;		// начало буфера
+						 end_ADC_buf 		= ADC_buf;		// конец буфера
+						 end_ADC_buf[0]		= ADC.Long;
+						 ADC_buf_empty		= OFF;
+						 ADC_buf_overflov	= OFF;			// начальная инициализация
+						 ADC_srednee		= 0;
+       }
+    else
+       {
+					 if(ADC_buf_overflov)
+							{
+								   ADC_srednee -= start_ADC_buf[0];	         // зачем ?
+								   ADC_srednee += ADC.Long;	    // текущее значение АЦП
+																// sred = ADC_srednee;
+																//  sred/=Len_ADC_Buf;		  // 16 значений в буфере
+								
+									
+									if (flag_ocifrovka == pervij)
+										{ rrez1 = ADC_srednee;				}
+									else
+										{ rrez2 = ADC_srednee;
+										}
+									 flag_ocifrovka = ~flag_ocifrovka;
+								  
+								   //  окончание оцифровки
+
+
+
+							}
+					else 
+							ADC_srednee += ADC.Long;
+					if(start_ADC_buf<=end_ADC_buf)
+						{
+							   if(++end_ADC_buf == &ADC_buf[Len_ADC_Buf]) 
+									{end_ADC_buf=ADC_buf;
+									start_ADC_buf++;
+									ADC_buf_overflov=ON;}  
+						}
+					 else
+						{ 
+								   ++end_ADC_buf;
+								   ++start_ADC_buf;
+								   if(start_ADC_buf >= &ADC_buf[Len_ADC_Buf]) 
+											start_ADC_buf=ADC_buf;
+						}
+					 end_ADC_buf[0]=ADC.Long;   // 
+       }
+    	
+	}
 void Timer_Init()
 {
 											//TMOD      = 0x01;
