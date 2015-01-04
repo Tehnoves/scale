@@ -47,6 +47,11 @@
 #define vtoroi		   0x01
 // Peripheral specific initialization functions,
 // Called from the Init_Device() function
+#define diskret 4
+
+unsigned int pr,tmp3;
+unsigned char tmp2,half;
+
 
 union
 	{
@@ -393,12 +398,29 @@ void init_read(void)
 	//	sprintf(cell_weight_char,"%#4.4u",AA.co.cell_weight1); 
 		}
 	
-	
+unsigned int zn(unsigned int izm)
+			{
+				unsigned char tmp;
+				tmp = izm % diskret;
+			if  (tmp >= half)
+				return ( izm + diskret - tmp);
+			else 
+				 return	( izm - tmp); 
+			}
+		
 	
 	
 void main(void)
 	{
 			PCA0MD &= ~0x40; 
+		
+		  pr = 12340;
+		half = diskret / 2;
+		while (1)
+		{
+			tmp3 = zn(pr);
+			pr++;
+		}
 			Init_Device();
 			addr=0x7c00-512;
 			
