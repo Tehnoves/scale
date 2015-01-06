@@ -41,17 +41,25 @@
 #include <math.h>
 #include <stdlib.h>
 #include "F350_FlashPrimitives.h"
+
 #define ON              0x01
 #define OFF             0x00 
 #define pervij		   0x00
 #define vtoroi		   0x01
+
 // Peripheral specific initialization functions,
 // Called from the Init_Device() function
+
 #define diskret 4
 
 unsigned int pr,tmp3;
 unsigned char tmp2,half;
 
+sbit P13 = P1^3;
+sbit P14 = P1^4;
+sbit P15 = P1^5;
+sbit P16 = P1^6;
+sbit P17 = P1^7;
 
 union
 	{
@@ -65,40 +73,63 @@ bit ADC_buf_overflov;
 bit ADC_buf_empty=1; 
 							 //  for ADC
 #define Len_ADC_Buf 16       //16
-unsigned long xdata ADC_buf[Len_ADC_Buf];
-unsigned long xdata *start_ADC_buf;
-unsigned long xdata *end_ADC_buf;
+	unsigned long xdata ADC_buf[Len_ADC_Buf];
+	unsigned long xdata *start_ADC_buf;
+	unsigned long xdata *end_ADC_buf;
 
-unsigned long xdata ADC_srednee;
-  unsigned long xdata rrez1=0,rrez1_copy=0,rrez2=0,rrez2_copy=0;
+	unsigned long xdata ADC_srednee;
+	unsigned long xdata rrez1=0,rrez1_copy=0,rrez2=0,rrez2_copy=0;
 
 
- unsigned int xdata max_weight,cell_weight;
- long xdata sred;
- union zap
-   {  char ch[4];
-   long lo;
+	unsigned int xdata max_weight,cell_weight;
+	long xdata sred;
+	union zap
+		{   char ch[4];
+			long lo;
+		};
+	int xdata tara;
+ 
+ 
+	 union  Crr
+	 {
+	   unsigned int Int;
+	   unsigned char Char[2];
+	   
+	 };
+	 union  Crr2
+	 {
+	   int Int;
+	   char Char[2];
+	   
+	 };
+	 union Crr xdata Crc_send,Crc1_send;
+	 unsigned char xdata tek_ves1[8],tek_ves2[8],tek_ves3[8],zad_ves1[8],zad_ves2[8],zad_ves3[8],granica;
+
+	struct cons
+		{ 
+		long npv;
+		int  nmpv;
+		char diskreta;
+		char half_diskret;
+	 
+		}; 
+   
+   struct cons code vesy[8]= {
+		{2000,10,1,0},
+		{3000,20,1,0},
+		{5000,40,2.1},
+		{10000,10,5,2},
+		{15000,100,5,2},
+		{20000,200,10,5},
+		{30000,200,10,5},
+		{50000,400,20,10}
    };
- int xdata tara;
- 
- 
- union  Crr
- {
-   unsigned int Int;
-   unsigned char Char[2];
-   
- };
- union  Crr2
- {
-   int Int;
-   char Char[2];
-   
- };
- union Crr xdata Crc_send,Crc1_send;
- unsigned char xdata tek_ves1[8],tek_ves2[8],tek_ves3[8],zad_ves1[8],zad_ves2[8],zad_ves3[8],granica;
 
+  
+	/* 
  struct constanta 
    {
+	   
 	union Crr2 zad_ves1_int;		  // целое
 	union Crr2 zad_ves2_int;		  // целое
 	union Crr2 zad_ves3_int;		  // целое
@@ -135,17 +166,17 @@ unsigned long xdata ADC_srednee;
      union zap avto_null5;				 // длинное целое
 	union zap avto_null6;				 // длинное целое
 	
-  };
- struct constanta coc;
+  };*/
+ //struct constanta coc;
 
 
- union global 
-	{ struct constanta co;
-	  char con[sizeof(coc)];
-	};
+// union global 
+//	{ struct constanta co;
+//	  char con[sizeof(coc)];
+//	};
 
 
- union global xdata AA;
+// union global xdata AA;
 
  FLADDR xdata addr; 
  unsigned char  idata ii,jj;
@@ -178,7 +209,7 @@ unsigned long xdata ADC_srednee;
             hu[4] = 0;
       	} 
 
- //******************************
+//******************************
 //
 //	 наверное скользящее целое
 //
@@ -334,30 +365,17 @@ void Init_Device(void)
 		{  
 		char I;
    
-		//AA.co.zad_ves1_int.Int = 500;
+	/*
  		point(AA.co.zad_ves1_int.Int,&zad_ves1);
- 		//AA.co.zad_ves2_int.Int = 120;
+ 		
  		point(AA.co.zad_ves2_int.Int,&zad_ves2);		   
- 		//AA.co.zad_ves3_int.Int = 50;
+ 		
  		point(AA.co.zad_ves3_int.Int,&zad_ves3);
- 		/*
- 		AA.co.dad1.lo = 2793314;
-		AA.co.zero1.lo =243606;
-		AA.co.dad2.lo = 2788880;
-		AA.co.zero2.lo =278228;
-		AA.co.dad3.lo = 2836009;
-		AA.co.zero3.lo =254833;
-		AA.co.dad4.lo = 12931138;
-		AA.co.zero4.lo =1222894;
-		AA.co.dad5.lo = 12958486;
-		AA.co.zero5.lo =1365327;
-		AA.co.dad6.lo = 12925383;
-		AA.co.zero6.lo =1358715;
-		  */
-
+ 	
 		FLASH_PageErase((FLADDR) addr);
 		for (I=0;I<sizeof(AA);I++)
 				FLASH_ByteWrite ((FLADDR)addr+I,AA.con[I]);
+			*/
 
 	}	
 	
@@ -374,28 +392,20 @@ void Init_Device(void)
 void init_read(void)
 		{
 		char i;
+		/*	
 		for (i=0;i<sizeof(AA);i++)
    				AA.con[i]=FLASH_ByteRead ((FLADDR)addr+i);
 
-		//AA.co.zad_ves1_int.Char[0]=FLASH_ByteRead ((FLADDR)addr);
-		//AA.co.zad_ves1_int.Char[1]=FLASH_ByteRead ((FLADDR)addr+1);
+	
  		point(AA.co.zad_ves1_int.Int,&zad_ves1);
-		//AA.co.zad_ves2_int.Char[0]=FLASH_ByteRead ((FLADDR)addr+2);
-		//AA.co.zad_ves2_int.Char[1]=FLASH_ByteRead ((FLADDR)addr+3);
-
+		
         point(AA.co.zad_ves2_int.Int,&zad_ves2);
-		//AA.co.zad_ves3_int.Char[0]=FLASH_ByteRead ((FLADDR)addr+4);
-		//AA.co.zad_ves3_int.Char[1]=FLASH_ByteRead ((FLADDR)addr+5);
+		
 
  		point(AA.co.zad_ves3_int.Int,&zad_ves3);
 
-
-	//	point(AA.co.zad_ves3_int.Int,&zad_ves3);
-
-	//	cell_weight1;
-
-	//	  	cell_weight = 500;
-	//	sprintf(cell_weight_char,"%#4.4u",AA.co.cell_weight1); 
+*/
+	
 		}
 	
 unsigned int zn(unsigned int izm)
@@ -412,19 +422,29 @@ unsigned int zn(unsigned int izm)
 	
 void main(void)
 	{
-			PCA0MD &= ~0x40; 
+		PCA0MD &= ~0x40; 
 		
-		  pr = 12340;
-		half = diskret / 2;
-		while (1)
-		{
-			tmp3 = zn(pr);
-			pr++;
-		}
-			Init_Device();
-			addr=0x7c00-512;
+		// pr = 12340;
+		//half = diskret / 2;
+		
+	
+		Init_Device();
+			while (1)
+				P13 = 0;
+				P13 = 1;
+			{
+			//tmp3 = zn(pr);
+			//pr++;
+			}
+		addr=0x1E00;              	// конец памяти или последний 512-байтный блок
+									// в него будем писать константы
+									//
+									// мах вес НВП             дискрет                             1/2_дискрета         ADC_одного дискрета  NULL
+									//
+									// long    unsign char     unsigned char                        unsigned char       long                 long
+									//
 			
-			while (1); 
+		while (1); 
 				{
 					_nop_();
 				}
@@ -433,30 +453,30 @@ void main(void)
 	}
 	void Timer0 (void) interrupt 1
 
-   {   
-   		
-     TR0=0;
-     if (jj==8) jj=1;
-       else jj++;
-	yt = regen[jj-1];
-											//ii=0;
-	if (yt == '-')
-		{ii = 10;}
-	else if 	(yt == '+')
-		{ii = 11;}
-	else
-		{ii = yt-0x30;}
-											//while ((regen[jj-1] != codex[ii]) & (ii < 18)) ii++;
+		{   
+				
+			 TR0=0;
+			 if (jj==8) jj=1;
+			   else jj++;
+			yt = regen[jj-1];
+													//ii=0;
+			if (yt == '-')
+				{ii = 10;}
+			else if 	(yt == '+')
+				{ii = 11;}
+			else
+				{ii = yt-0x30;}
+													//while ((regen[jj-1] != codex[ii]) & (ii < 18)) ii++;
 
-     P2=0;
-     P0=shift[jj-1];
-											//P0 = shift[ii];
-    
+			 P2=0;
+			 P0=shift[jj-1];
+													//P0 = shift[ii];
+			
 
-	 if ((jj ==7) | (jj == 3))
-	 	   P2=codtabl[ii] +0x80;
-	 else
-	 	 P2=codtabl[ii];
-     TR0=1;
+			 if ((jj ==7) | (jj == 3))
+				   P2=codtabl[ii] +0x80;
+			 else
+				 P2=codtabl[ii];
+			 TR0=1;
 
-   }
+		}
