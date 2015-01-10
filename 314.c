@@ -4,6 +4,8 @@
 //  процессор F314
 //  03.01.15 старт
 //  04.01.15 флэш 
+//  09.01.15 KN
+//  10.01.16 kalibr
 //           двойная буферизация
 //
 //
@@ -58,9 +60,10 @@ bit left_old,left_new,leftchench;
 bit right_old,right_new,rightchench;
 bit tara_old,tara_new,tarachench;
 bit null_old,null_new,nullchench;
+bit flag_sek;
 
 
-char code baza[8][5]= {
+char code baza[9][5]= {
 		{'0','2','0','0','0'},
 		{'0','3','0','0','0'},
 		{'0','5','0','0','0'},
@@ -68,7 +71,8 @@ char code baza[8][5]= {
 		{'1','5','0','0','0'},
 		{'2','0','0','0','0'},
 		{'3','0','0','0','0'},
-		{'5','0','0','0','0'}		
+		{'5','0','0','0','0'},
+		{'0','0','0','0','0'}
 	};
 char code dis[10][5]={
 	    {'0','0','0','1','0'},
@@ -83,9 +87,11 @@ char code dis[10][5]={
 		{'0','0','1','0','0'}
 	};
 	
-unsigned int pr,tmp3;
-unsigned char tmp2,half,k2,selekt,k1;
-char index;
+unsigned int xdata pr,tmp3;
+unsigned char xdata tmp2,half,k2,selekt,k1;
+char xdata index;
+char xdata msek,sek;
+char xdata xvost[5];
 
 sbit P13 = P1^3;
 sbit P14 = P1^4;
@@ -214,7 +220,7 @@ bit ADC_buf_empty=1;
  unsigned char  pdata  regen[5] = {'1','2','3','4','5'};
  
  void init_flash(void);
- 
+ 	void copi_kalibr_ves(void);
  void point(int f, char xdata *hu)
 	 	{
 			
@@ -304,16 +310,16 @@ void ADC_calculate(void)
 	}
 void Timer_Init()
 {
-											//TMOD      = 0x01;
-											//TMR2CN    = 0x28;
-   // TMOD      = 0x01;
-   // TMR2CN    = 0x28;
-	//    TMOD      = 0x01;
+	
+	//    TMOD      = 0x02;
     //CKCON     = 0x01;
-   // TMR2CN    = 0x28;
-	    TMOD      = 0x02;
+    //TMR2CN    = 0x28;
+	
+	  TMOD      = 0x02;
     CKCON     = 0x01;
-    TMR2CN    = 0x28;
+    TMR2CN    = 0x04;
+		TR2 = 1; 
+	
 }
 
 void SPI_Init()
@@ -368,7 +374,9 @@ void Interrupts_Init()
 									//IT01CF    = 0x76;
 									//IE        = 0xC7;
 	IT01CF    = 0x76;
-    IE        = 0x82;
+ //   IE        = 0x82;
+	IE        = 0xA2;
+
 }
  void start_timer0(void)
 
@@ -527,6 +535,46 @@ void test(void)
 		delay(40);
 	}
 	
+	void copi_null(void)
+	{
+		char i;
+			null_5 = 1;
+			null_4 = 1;
+			null_3 = 1;
+			null_2 = 1;
+			for(i=0;i<5;i++)
+			{
+				regen[i] =baza[8][i];
+					
+			}
+	
+	}
+	
+	void proba(void)
+	{
+		float a;
+		char i;
+		for(i=0;i<5;i++)
+		xvost[i] =baza[1][i];
+		a = (1+1)/10.0;
+		
+		a = a*atoi(xvost);
+		sprintf(regen,"%0.5u",(int)a); 
+	}
+	
+	void copi_kalibr_ves(void)
+	{
+		float a;
+		char i;
+		for(i=0;i<5;i++)
+		xvost[i] =baza[BB.variable.k1][i];
+		a = (BB.variable.k2+1)/10;
+		
+		a = a*atoi(xvost);
+		sprintf(regen,"%0.5u",(int)a); 
+	}
+	
+	
 	void copi(char nu)
 	{
 		char i;
@@ -593,6 +641,9 @@ void test(void)
 		index = 0;
 		k2 = 0;
 		selekt = 1;
+		flag_sek = 0;
+		msek = 0;
+		sek= 0;
 		}	
 	void tes(char k1,char sel)
 		{
@@ -663,34 +714,26 @@ void test(void)
 								 BB.variable.k2= index;
 								init_write();
 								init_read();
+								copi_null();
+								
 								break;
 							case 3:
+							
+								TR2 = 1;
+								break;
 							case 4:
+								sek = 0;
+								msek = 0;
+							
+								copi_kalibr_ves();
+								break;
 							case 5:
+								TR2 = 1;
 								break;
 						}	
 	}
 	
-	void kalib2(void)
-	{
-		switch (k2)
-						{
-							case 0:
-							
-								break;
-							
-							case 1:
-							
-							case 2:
-							
-							case 3:
-							
-							case 4:
-							
-							case 5:
-								break;
-						}	
-	}
+
 	
 			
 	void kalib(void)
@@ -705,7 +748,11 @@ void test(void)
 							//copi_dis(index);
 						}
 						tara_old = tara_new;
-						
+		if (flag_sek)
+		{
+			flag_sek = 0;
+			sprintf(regen,"%0.3d",sek);
+		}		
 						/*
 						switch (k2)
 						{
@@ -732,7 +779,10 @@ void test(void)
 void main(void)
 	{
 		PCA0MD &= ~0x40;
+	//	sek = 12;
+	//	sprintf(xvost,"%0.5u",(int)sek);  
 		_nop_();
+		proba();
 		init_param();
 		// pr = 12340;
 		//half = diskret / 2;
@@ -771,7 +821,26 @@ void main(void)
 									// мах вес НВП             дискрет                             1/2_дискрета         ADC_одного дискрета  NULL
 									//
 									// long    unsign char     unsigned char                        unsigned char       long                 long
-			//copi(index);						//
+			//copi(index);		
+
+			//
+			null_5 = 0;
+			null_4 = 0;
+			null_3 = 0;
+			null_2 = 0;
+			while (1)
+			{
+				if (flag_sek)
+					{
+						flag_sek = 0;
+						sprintf(regen,"%0.5u",(int)sek); 
+						null_2 = (regen[3] != '0');
+					}		
+			}
+			
+			
+			
+			
 			copi(index);
 			kalib_1();
 		while (1)
@@ -837,3 +906,16 @@ void main(void)
 			TR0=1;
 
 		}
+	void Timer2 (void) interrupt 5
+	{
+		TF2H = 0;
+		msek++;
+		if (msek > 30)
+		{
+			msek = 0;
+			sek++;
+			flag_sek = 1;
+		}
+		_nop_();
+	}
+	
