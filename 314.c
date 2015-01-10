@@ -1,3 +1,4 @@
+
 /////////////////////////////////////
 //  Проект весы для Андреевича     //
 //  процессор F314
@@ -50,10 +51,41 @@
 // Peripheral specific initialization functions,
 // Called from the Init_Device() function
 
+
 #define diskret 4
 
+bit left_old,left_new,leftchench;
+bit right_old,right_new,rightchench;
+bit tara_old,tara_new,tarachench;
+bit null_old,null_new,nullchench;
+
+
+char code baza[8][5]= {
+		{'0','2','0','0','0'},
+		{'0','3','0','0','0'},
+		{'0','5','0','0','0'},
+		{'1','0','0','0','0'},
+		{'1','5','0','0','0'},
+		{'2','0','0','0','0'},
+		{'3','0','0','0','0'},
+		{'5','0','0','0','0'}		
+	};
+char code dis[10][5]={
+	    {'0','0','0','1','0'},
+		{'0','0','0','2','0'},
+		{'0','0','0','3','0'},
+		{'0','0','0','4','0'},
+		{'0','0','0','5','0'},
+		{'0','0','0','6','0'},
+		{'0','0','0','7','0'},
+		{'0','0','0','8','0'},
+		{'0','0','0','9','0'},
+		{'0','0','1','0','0'}
+	};
+	
 unsigned int pr,tmp3;
 unsigned char tmp2,half;
+char index;
 
 sbit P13 = P1^3;
 sbit P14 = P1^4;
@@ -61,13 +93,29 @@ sbit P15 = P1^5;
 sbit P16 = P1^6;
 sbit P17 = P1^7;
 
+sbit P20 = P2^0;
+sbit P21 = P2^1;
+sbit P22 = P2^2;
+sbit P23 = P2^3;
+sbit P24 = P2^4;
+sbit P25 = P2^5;
+sbit P26 = P2^6;
+sbit P27 = P2^7;
+
+sbit right = P3^1;
+sbit left = P3^2;
+sbit tara = P3^3;
+sbit nul = P3^4;
+
+
+
 union
 	{
   unsigned long Long;
   unsigned char Byte[4];
 	} xdata ADC;
 	
-	
+bit null_5,null_4,null_3,null_2;	
 bit flag_ocifrovka;
 bit ADC_buf_overflov;
 bit ADC_buf_empty=1; 
@@ -87,7 +135,7 @@ bit ADC_buf_empty=1;
 		{   char ch[4];
 			long lo;
 		};
-	int xdata tara;
+	int xdata tara_var;
  
  
 	 union  Crr
@@ -103,7 +151,7 @@ bit ADC_buf_empty=1;
 	   
 	 };
 	 union Crr xdata Crc_send,Crc1_send;
-	 unsigned char xdata tek_ves1[8],tek_ves2[8],tek_ves3[8],zad_ves1[8],zad_ves2[8],zad_ves3[8],granica;
+	 unsigned char xdata tek_ves1[5],granica;
 
 	struct cons
 		{ 
@@ -126,67 +174,26 @@ bit ADC_buf_empty=1;
    };
 
   
-	/* 
- struct constanta 
-   {
-	   
-	union Crr2 zad_ves1_int;		  // целое
-	union Crr2 zad_ves2_int;		  // целое
-	union Crr2 zad_ves3_int;		  // целое
-	union zap dad1;					  // длинное целое
-	union zap dad2;					  // 
-	union zap dad3;					  // длинное целое
-    union zap dad4;					  // длинное целое
-	union zap dad5;					  // длинное целое
-	union zap dad6;					  // длинное целое
-	union zap zero1;				  // длинное целое
-	union zap zero2;				  // длинное целое
-	union zap zero3;				  // длинное целое
-    union zap zero4;				  // длинное целое
-	union zap zero5;				  // длинное целое
-	union zap zero6;				  // длинное целое
-    union Crr2 cell_weight1;		  // целое
-	union Crr2 cell_weight2;		  // целое
-	union Crr2 cell_weight3;		  // целое
-	union Crr2 cell_weight4;		  // целое
-    union Crr2 cell_weight5;		  // целое
-	union Crr2 cell_weight6;		  // целое
-
-	union Crr2 max_weight1;			 // целое
-    union Crr2 max_weight2;			 // целое
-	union Crr2 max_weight3;			 // целое
-	union Crr2 max_weight4;			 // целое
-	union Crr2 max_weight5;			 // целое
-    union Crr2 max_weight6;			 // целое
-
-     union zap avto_null1;				 // длинное целое
-	union zap avto_null2;				 // длинное целое
-	union zap avto_null3;				 // длинное целое
-	union zap avto_null4;				 // длинное целое
-     union zap avto_null5;				 // длинное целое
-	union zap avto_null6;				 // длинное целое
-	
-  };*/
- //struct constanta coc;
+ struct cons var_cons;
 
 
-// union global 
-//	{ struct constanta co;
-//	  char con[sizeof(coc)];
-//	};
+ union global 
+	{ struct cons co1;
+	  char con[sizeof(var_cons)];
+	};
 
 
-// union global xdata AA;
+ union global xdata AA;
 
  FLADDR xdata addr; 
  unsigned char  idata ii,jj;
  unsigned char idata yt;
  unsigned char code shift[8] =  {0x80,0x40,0x20,0x10,0x08,0x04,0x02,0x01};
- unsigned char code codtabl[18]={0x3f,0x06,0x5b,0x4f,0x66,0x6d,0x7d,0x07,
-                                0x7f,0x6f,0x40,0x00,0x71,0x71,0x71,0x71,
-                                0x71,0x71 };
+ unsigned char code codtabl[18]={~0xf6,~0x30,~0xe5,~0xf1,~0x33,~0xd3,~0xd7,~0x70,
+                                ~0xf7,~0xf3,~0x02,~0x40,~0x20,~0x10,~0x80,~0x04,
+                                ~0x01,~0x08 };
 
- unsigned char  pdata  regen[8] = {'1','2','3','4','5','6','7','8'};
+ unsigned char  pdata  regen[5] = {'1','2','3','4','5'};
  
  void point(int f, char xdata *hu)
 	 	{
@@ -279,7 +286,13 @@ void Timer_Init()
 {
 											//TMOD      = 0x01;
 											//TMR2CN    = 0x28;
-    TMOD      = 0x01;
+   // TMOD      = 0x01;
+   // TMR2CN    = 0x28;
+	//    TMOD      = 0x01;
+    //CKCON     = 0x01;
+   // TMR2CN    = 0x28;
+	    TMOD      = 0x02;
+    CKCON     = 0x01;
     TMR2CN    = 0x28;
 }
 
@@ -292,31 +305,37 @@ void SPI_Init()
 
 void Port_IO_Init()
 {
-    // P0.0  -  SCK  (SPI0), Open-Drain, Digital
-    // P0.1  -  MISO (SPI0), Open-Drain, Digital
-    // P0.2  -  MOSI (SPI0), Open-Drain, Digital
-    // P0.3  -  Unassigned,  Open-Drain, Digital
-    // P0.4  -  Unassigned,  Open-Drain, Digital
-    // P0.5  -  Unassigned,  Open-Drain, Digital
-    // P0.6  -  Skipped,     Open-Drain, Digital
-    // P0.7  -  Skipped,     Open-Drain, Digital
+											// P0.0  -  SCK  (SPI0), Open-Drain, Digital
+											// P0.1  -  MISO (SPI0), Open-Drain, Digital
+											// P0.2  -  MOSI (SPI0), Open-Drain, Digital
+											// P0.3  -  Unassigned,  Open-Drain, Digital
+											// P0.4  -  Unassigned,  Open-Drain, Digital
+											// P0.5  -  Unassigned,  Open-Drain, Digital
+											// P0.6  -  Skipped,     Open-Drain, Digital
+											// P0.7  -  Skipped,     Open-Drain, Digital
 
-    // P1.0  -  Unassigned,  Open-Drain, Digital
-    // P1.1  -  Unassigned,  Open-Drain, Digital
-    // P1.2  -  Unassigned,  Open-Drain, Digital
-    // P1.3  -  Unassigned,  Open-Drain, Digital
-    // P1.4  -  Unassigned,  Open-Drain, Digital
-    // P1.5  -  Unassigned,  Open-Drain, Digital
-    // P1.6  -  Unassigned,  Open-Drain, Digital
-    // P1.7  -  Unassigned,  Open-Drain, Digital
-    // P2.0  -  Unassigned,  Open-Drain, Digital
-    // P2.1  -  Unassigned,  Open-Drain, Digital
-    // P2.2  -  Unassigned,  Open-Drain, Digital
-    // P2.3  -  Unassigned,  Open-Drain, Digital
+											// P1.0  -  Unassigned,  Open-Drain, Digital
+											// P1.1  -  Unassigned,  Open-Drain, Digital
+											// P1.2  -  Unassigned,  Open-Drain, Digital
+											// P1.3  -  Unassigned,  Open-Drain, Digital
+											// P1.4  -  Unassigned,  Open-Drain, Digital
+											// P1.5  -  Unassigned,  Open-Drain, Digital
+											// P1.6  -  Unassigned,  Open-Drain, Digital
+											// P1.7  -  Unassigned,  Open-Drain, Digital
+											// P2.0  -  Unassigned,  Open-Drain, Digital
+											// P2.1  -  Unassigned,  Open-Drain, Digital
+											// P2.2  -  Unassigned,  Open-Drain, Digital
+											// P2.3  -  Unassigned,  Open-Drain, Digital
 
+     P0MDOUT   = 0xFF;
+    P1MDOUT   = 0xFF;
+    P2MDOUT   = 0xFF;
+  //  P3MDOUT   = 0x1F; 
+	P3MDOUT   = 0x01;
     P0SKIP    = 0xC0;
     XBR0      = 0x02;
     XBR1      = 0xC0;
+
 }
 
 void Oscillator_Init()
@@ -355,7 +374,7 @@ void Init_Device(void)
 
     Interrupts_Init();
 	} 
-//********************************
+	//********************************
 	//
 	//	  запись FLASH
 	//
@@ -364,89 +383,235 @@ void Init_Device(void)
 	void init_write(void)
 		{  
 		char I;
-   
-	/*
- 		point(AA.co.zad_ves1_int.Int,&zad_ves1);
- 		
- 		point(AA.co.zad_ves2_int.Int,&zad_ves2);		   
- 		
- 		point(AA.co.zad_ves3_int.Int,&zad_ves3);
- 	
-		FLASH_PageErase((FLADDR) addr);
+		
+   		AA.co1.npv =20000;
+		AA.co1.nmpv =100;
+		AA.co1.diskreta =10;
+		
 		for (I=0;I<sizeof(AA);I++)
 				FLASH_ByteWrite ((FLADDR)addr+I,AA.con[I]);
-			*/
-
-	}	
+		}	
 	
 	
 	//**********************
-	//
 	//
 	//	 чтение FLASH
 	//
+	//**********************
+	
+	
+	void init_read(void)
+		{
+		char i;
+			
+		for (i=0;i<sizeof(AA);i++)
+   				AA.con[i]=FLASH_ByteRead ((FLADDR)addr+i);
+		}
+	
+	
+	//**********************
+	//
+	//	 хождение по дискрету
 	//
 	//**********************
 	
 	
-void init_read(void)
+	unsigned int zn(unsigned int izm)
 		{
-		char i;
-		/*	
-		for (i=0;i<sizeof(AA);i++)
-   				AA.con[i]=FLASH_ByteRead ((FLADDR)addr+i);
-
-	
- 		point(AA.co.zad_ves1_int.Int,&zad_ves1);
-		
-        point(AA.co.zad_ves2_int.Int,&zad_ves2);
-		
-
- 		point(AA.co.zad_ves3_int.Int,&zad_ves3);
-
-*/
-	
-		}
-	
-unsigned int zn(unsigned int izm)
-			{
-				unsigned char tmp;
-				tmp = izm % diskret;
+		unsigned char tmp;
+			tmp = izm % diskret;
 			if  (tmp >= half)
 				return ( izm + diskret - tmp);
 			else 
 				 return	( izm - tmp); 
-			}
+		}
 		
+	void start(char bukva)
+		{
+		unsigned char i;
+		for (i= 0;i<5;i++)
+			regen[i] =  bukva; 
+		}
+		
+	void delay(int cnt)  {
+		int i,ii;
+		for (i=0;i<cnt;i++)
+			for (ii=0;ii<20000;ii++)
+				_nop_();
+		}
+
+void test(void)
+	{
+		char i,j=0x3a;
+		for (i=0;i<10;i++)
+				{
+					start(j+i);
+					delay(40);
+				}
+				/*
+					start(0x3b);
+					delay(40);
+					start(0x3c);
+					delay(40);
+					start(0x3d);
+					delay(40);
+					start(0x3e);
+					delay(40);
+					start(0x3f);
+					delay(40);
+					start(0x40);
+					delay(40);
+					start(0x41);
+					delay(40);
+				*/
+					regen[0] ='1';
+		regen[1] ='2';
+		regen[2] ='3';
+		regen[3] ='4';
+		regen[4] ='5';
+		delay(40);
+		delay(40);
+		delay(40);
+		delay(40);
+	}
+	
+	void copi(char nu)
+	{
+		char i;
+			null_5 = 1;
+			null_4 = 1;
+			null_3 = 1;
+			null_2 = 1;
+			for(i=0;i<5;i++)
+			{
+				regen[i] =baza[nu][i];
+					if (i==0)
+						null_5 = (regen[i] != '0');
+			}
+	
+	}
+	
+	void copi_dis(char nu)
+	{
+		char i;
+			null_5 = 0;
+			null_4 = 0;
+			null_3 = 1;
+			null_2 = 1;
+			//null_1 = 1;
+			for(i=0;i<5;i++)
+			{
+				regen[i] =dis[nu][i];
+					if (i==2)
+						null_3 = (regen[i] != '0');
+			}
+	
+	}
+	void init_param(void)
+		{null_4 = 1;
+		null_3 = 1;
+		null_2  = 1;
+		//copi(3);
+		index =0;
+		regen[0] ='1';
+		regen[1] ='2';
+		regen[2] ='3';
+		regen[3] ='4';
+		regen[4] ='5';
+		P2= 0xff;		P13 = 1;
+		P14 = 0;
+		P15 = 0;
+		P16 = 0;
+		P17 = 0;
+		Init_Device();
+		addr=0x1E00+400;  
+		//init_write();
+		AA.co1.npv =0;
+		AA.co1.nmpv =0;
+		AA.co1.diskreta =0;
+		left_old=1;left_new=1;leftchench=0;
+		right_old=1;right_new=1;rightchench=0;
+		tara_old=1;tara_new=1;tarachench=0;
+		null_old=1;null_new=1;nullchench=0;
+		index = 0;
+		}	
+	void tes(void)
+		{
+			right_new = right;
+			if (right_old != right_new) 
+				{
+					if (!right_new)
+						{
+							if (++index > 9 )          //7
+								index = 0;
+							copi_dis(index);
+						}
+						right_old = right_new;
+				}
+			left_new = left;
+			if (left_old != left_new) 
+				{
+					if (!left_new)
+						{
+							if (--index < 0 )
+								index = 9;           //
+							copi_dis(index);
+						}
+						left_old = left_new;
+				}	
+		}
+	
 	
 	
 void main(void)
 	{
-		PCA0MD &= ~0x40; 
-		
+		PCA0MD &= ~0x40;
+		_nop_();
+		init_param();
 		// pr = 12340;
 		//half = diskret / 2;
 		
-	
-		Init_Device();
-			while (1)
+		//init_read();
+		/*
 				P13 = 0;
-				P13 = 1;
+		P14 = 0;
+		P15 = 0;
+		P16 = 0;
+		P17 = 1;
+			while (1)
+			{	
+				P2= 0xff;
+				P2 = codtabl[0];
+				P2 = codtabl[1];
+				P2 = codtabl[2];
+				P2 = codtabl[3];
+				P2 = codtabl[4];
+				P2 = codtabl[5];
+				P2 = codtabl[6];
+				P2 = codtabl[7];
+				P2 = codtabl[8];
+				P2 = codtabl[9];
+				
+				
+			}
+			*/
 			{
 			//tmp3 = zn(pr);
 			//pr++;
 			}
-		addr=0x1E00;              	// конец памяти или последний 512-байтный блок
+		//addr=0x1E00+400;              	// конец памяти или последний 512-байтный блок
 									// в него будем писать константы
 									//
 									// мах вес НВП             дискрет                             1/2_дискрета         ADC_одного дискрета  NULL
 									//
 									// long    unsign char     unsigned char                        unsigned char       long                 long
-									//
-			
-		while (1); 
+			//copi(index);						//
+			copi_dis(index);
+		while (1)
 				{
+					tes();
 					_nop_();
+					
 				}
 			
 			
@@ -456,6 +621,54 @@ void main(void)
 		{   
 				
 			 TR0=0;
+			 P2 = 0xff;
+			 if (P13)
+			 {
+				P13 = 0;
+				P14 = 1;
+				if (null_4)
+					P2= codtabl[regen[1] - 0x30];
+				else
+					P2 = 0xff;
+			 }
+			else if (P14)
+			{
+				P14 = 0;
+				P15 = 1;
+				if (null_3)
+					P2= codtabl[regen[2] - 0x30];
+				else
+					P2 = 0xff;
+			}
+			else if (P15)
+			{
+				P15 = 0;
+				P16 = 1;
+				if (null_2)
+					P2= codtabl[regen[3] - 0x30];
+				else
+					P2 = 0xff;
+			}
+			else if (P16)
+			{
+				P16 = 0;
+				P17 = 1;
+				//if (null_4)
+					P2= codtabl[regen[4] - 0x30];
+				//else
+				//	P2 = 0xff;
+			}
+			else if (P17)
+			{
+				P17 = 0;
+				P13 = 1;
+				if (null_5)
+					P2= codtabl[regen[0] - 0x30];
+				else	
+					P2 = 0xff;
+			}
+			
+			/*
 			 if (jj==8) jj=1;
 			   else jj++;
 			yt = regen[jj-1];
@@ -476,7 +689,7 @@ void main(void)
 			 if ((jj ==7) | (jj == 3))
 				   P2=codtabl[ii] +0x80;
 			 else
-				 P2=codtabl[ii];
+				 P2=codtabl[ii]; */
 			 TR0=1;
 
 		}
