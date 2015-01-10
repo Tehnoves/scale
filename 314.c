@@ -84,7 +84,7 @@ char code dis[10][5]={
 	};
 	
 unsigned int pr,tmp3;
-unsigned char tmp2,half;
+unsigned char tmp2,half,k2,selekt,k1;
 char index;
 
 sbit P13 = P1^3;
@@ -153,8 +153,26 @@ bit ADC_buf_empty=1;
 	 union Crr xdata Crc_send,Crc1_send;
 	 unsigned char xdata tek_ves1[5],granica;
 
+	 struct var 
+	 {
+		 char k1;
+		 char k2;
+		 long diskr;
+	 };
+	 
+	 struct var perem;
+	 
+	 union global2
+	 {
+		 struct var variable;
+		 char yy[sizeof(perem)];
+	 };
+	 
+	 union global2 xdata BB;
+	 
 	struct cons
 		{ 
+		char cod;
 		long npv;
 		int  nmpv;
 		char diskreta;
@@ -194,6 +212,8 @@ bit ADC_buf_empty=1;
                                 ~0x01,~0x08 };
 
  unsigned char  pdata  regen[5] = {'1','2','3','4','5'};
+ 
+ void init_flash(void);
  
  void point(int f, char xdata *hu)
 	 	{
@@ -374,6 +394,7 @@ void Init_Device(void)
 
     Interrupts_Init();
 	} 
+	
 	//********************************
 	//
 	//	  запись FLASH
@@ -384,12 +405,19 @@ void Init_Device(void)
 		{  
 		char I;
 		
-   		AA.co1.npv =20000;
-		AA.co1.nmpv =100;
-		AA.co1.diskreta =10;
+   	//	AA.co1.npv =20000;
+	//	AA.co1.nmpv =100;
+	//	AA.co1.diskreta =10;
 		
+   		//BB.variable.k1 =2;
+		//BB.variable.k2 =5;
+		//BB.variable.diskr =12345;
+		FLASH_PageErase((FLADDR) addr);
 		for (I=0;I<sizeof(AA);I++)
 				FLASH_ByteWrite ((FLADDR)addr+I,AA.con[I]);
+		//addr += 8;
+		for (I=0;I<sizeof(BB);I++)
+				FLASH_ByteWrite ((FLADDR)addr+I+sizeof(AA),BB.yy[I]);	
 		}	
 	
 	
@@ -403,11 +431,35 @@ void Init_Device(void)
 	void init_read(void)
 		{
 		char i;
+		//	int y;
 			
 		for (i=0;i<sizeof(AA);i++)
    				AA.con[i]=FLASH_ByteRead ((FLADDR)addr+i);
+				//addr +=8;	
+			
+		for (i=0;i<sizeof(BB);i++)
+			{
+			
+				//y = sizeof(AA);
+				//y = (FLADDR)addr+i+sizeof(AA);
+   				BB.yy[i]=FLASH_ByteRead ((FLADDR)addr+i+sizeof(AA));	
+			}
+		if (AA.co1.cod !=  0x55)
+			init_flash();	
 		}
-	
+	void init_flash(void)
+	{
+			AA.co1.cod = 0x55;	
+			AA.co1.npv =20000;
+			AA.co1.nmpv =100;
+			AA.co1.diskreta =10;
+		
+			BB.variable.k1 =0;
+			BB.variable.k2 =0;
+			BB.variable.diskr =12345;
+			init_write();
+			init_read();
+	}
 	
 	//**********************
 	//
@@ -524,8 +576,13 @@ void test(void)
 		P16 = 0;
 		P17 = 0;
 		Init_Device();
-		addr=0x1E00+400;  
-		//init_write();
+		addr=0x1d00;  
+	//	init_write();
+		addr=0x1c00;  
+		BB.variable.k1 =0;
+		BB.variable.k2 =0;
+		BB.variable.diskr =0;
+		init_read();	
 		AA.co1.npv =0;
 		AA.co1.nmpv =0;
 		AA.co1.diskreta =0;
@@ -534,17 +591,28 @@ void test(void)
 		tara_old=1;tara_new=1;tarachench=0;
 		null_old=1;null_new=1;nullchench=0;
 		index = 0;
+		k2 = 0;
+		selekt = 1;
 		}	
-	void tes(void)
+	void tes(char k1,char sel)
 		{
 			right_new = right;
 			if (right_old != right_new) 
 				{
 					if (!right_new)
 						{
-							if (++index > 9 )          //7
+							if (++index > k1 )          //7
 								index = 0;
-							copi_dis(index);
+							if (sel == 2)
+							{	
+								BB.variable.k2 =index;	
+								copi_dis(index);
+							}
+							else
+							{
+								BB.variable.k1 =index;	
+								copi(index);
+							}								
 						}
 						right_old = right_new;
 				}
@@ -554,13 +622,111 @@ void test(void)
 					if (!left_new)
 						{
 							if (--index < 0 )
-								index = 9;           //
-							copi_dis(index);
+								index = k1;           //
+							if (sel == 2)
+							{	
+								BB.variable.k2 =index;	
+								copi_dis(index);
+							}
+							else
+							{
+								BB.variable.k1 =index;	
+								copi(index);
+							}			
+																//BB.variable.k2 =index;
+																//copi_dis(index);
 						}
 						left_old = left_new;
 				}	
 		}
+	void kalib_1(void)
+	{
+		switch (k2)
+						{
+							case 0:
+								init_read();
+								index = BB.variable.k1;
+								//k2 = 1;
+								k1 =  7;
+								copi(index);
+								break;
+							case 1:
+							    BB.variable.k1= index;
+								init_write();
+								init_read();
+								index = BB.variable.k2;
+								k1 =9;
+								copi_dis(index);
+								selekt = 2;
+								break;
+							case 2:
+								 BB.variable.k2= index;
+								init_write();
+								init_read();
+								break;
+							case 3:
+							case 4:
+							case 5:
+								break;
+						}	
+	}
 	
+	void kalib2(void)
+	{
+		switch (k2)
+						{
+							case 0:
+							
+								break;
+							
+							case 1:
+							
+							case 2:
+							
+							case 3:
+							
+							case 4:
+							
+							case 5:
+								break;
+						}	
+	}
+	
+			
+	void kalib(void)
+	{
+		tara_new = tara;
+			if (tara_old != tara_new) 
+				{
+					if (!tara_new)
+						{
+							k2++;         //7
+							kalib_1();
+							//copi_dis(index);
+						}
+						tara_old = tara_new;
+						
+						/*
+						switch (k2)
+						{
+							case 0:
+							{
+								break;
+							}
+							case 1:
+							{}
+							case 2:
+							{}
+							case 3:
+							{}
+							case 4:
+							{}
+							case 5:
+								break;
+						}	*/
+				}
+			
+	}
 	
 	
 void main(void)
@@ -606,10 +772,12 @@ void main(void)
 									//
 									// long    unsign char     unsigned char                        unsigned char       long                 long
 			//copi(index);						//
-			copi_dis(index);
+			copi(index);
+			kalib_1();
 		while (1)
 				{
-					tes();
+					kalib();
+					tes(k1,selekt);
 					_nop_();
 					
 				}
@@ -653,10 +821,8 @@ void main(void)
 			{
 				P16 = 0;
 				P17 = 1;
-				//if (null_4)
-					P2= codtabl[regen[4] - 0x30];
-				//else
-				//	P2 = 0xff;
+				P2= codtabl[regen[4] - 0x30];
+				
 			}
 			else if (P17)
 			{
@@ -668,28 +834,6 @@ void main(void)
 					P2 = 0xff;
 			}
 			
-			/*
-			 if (jj==8) jj=1;
-			   else jj++;
-			yt = regen[jj-1];
-													//ii=0;
-			if (yt == '-')
-				{ii = 10;}
-			else if 	(yt == '+')
-				{ii = 11;}
-			else
-				{ii = yt-0x30;}
-													//while ((regen[jj-1] != codex[ii]) & (ii < 18)) ii++;
-
-			 P2=0;
-			 P0=shift[jj-1];
-													//P0 = shift[ii];
-			
-
-			 if ((jj ==7) | (jj == 3))
-				   P2=codtabl[ii] +0x80;
-			 else
-				 P2=codtabl[ii]; */
-			 TR0=1;
+			TR0=1;
 
 		}
