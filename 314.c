@@ -119,7 +119,12 @@ sbit left  = P3^2;
 sbit tara  = P3^3;
 sbit nul   = P3^4;
 
-
+sbit CSCON= P1^2;
+sbit IRQ0 = P0^6;    
+sbit IRQ1 = P0^7;  
+sbit reset = P1^0;
+ 
+sbit CSDAT = P1^1;
 
 union
 	{
@@ -275,7 +280,9 @@ bit ADC_buf_empty=1;
 							
 			unsigned char xdata  TxPacket[packetlength];
 			unsigned char  xdata RxPacket[packetlength];						
-							
+			unsigned char xdata command,val;
+			unsigned char xdata A2,A3,i,a5,RxPacketLen;	
+			unsigned char xdata diagnoz[12];
 							
   
  struct cons var_cons;
@@ -383,6 +390,15 @@ void Timer_Init()
 
 void SPI_Init()
 {
+	
+	/* SPI0CFG   = 0x40;
+    SPI0CN    = 0x01;
+    SPI0CKR   = 0x97;		   //  	 0x1D
+	IT0 = 1;
+	IT1 = 1;*/
+	
+	
+	
     SPI0CFG   = 0x40;
     SPI0CN    = 0x01;
     SPI0CKR   = 0x1D;
@@ -1015,4 +1031,298 @@ void main(void)
 			}
 		_nop_();
 	}
+	
+	void write_spi_con(unsigned char A1, unsigned char value)
+	{
+		static unsigned char t;	
+		t = 0;  
+
+		t = _crol_(A1,1);
+		while (command != NU);
+		cs_con = 0;
+
+		CSCON = 0;
+		command = WR1;
+		SPI0DAT = t;
+		A2 = value;
+		while (command != NU);
+		CSCON = 1;
+
+	}
+	unsigned char read_spi_con(unsigned char A1)
+	{
+			static unsigned char t;
+
+			t = 0;	
+			t = _crol_(A1,1);
+			t |= 0x40;
+			command = RD;
+		    cs_con = 0;
+
+			CSCON = 0;
+			SPI0DAT = t;
+			while (command != NU);
+			command = RD;
+			SPI0DAT = 0x00;
+				//A3 =  SPI0DAT;
+				while (command != NU);
+			A3 =  SPI0DAT;
+		   	CSCON = 1;
+		return (A3);
+	}
+		void WriteFIFO(unsigned char Dat)
+
+	{
+									//volatile BYTE tmp0RFIE = PHY_IRQ1_En;
+			
+									//PHY_IRQ1_En = 0;
+			CSDAT =0;
+			while (command != NU);
+			command = WR2;
+			SPI0DAT = Dat;
+			while (command != NU);
+			CSDAT = 1;
+									//PHY_IRQ1_En = tmp0RFIE;
+			
+	}
+		void SetRFMode_my( char mode)
+{
+	 char	mcparam0_read;
+	mcparam0_read = read_spi_con(REG_MCPARAM0);
+	switch (mode) {
+		case RF_TRANSMITTER:
+			write_spi_con(REG_MCPARAM0, (mcparam0_read & 0x1F) | RF_TRANSMITTER);
+			RF_Mode = RF_TRANSMITTER;				//RF in TX mode
+			break;
+		case RF_RECEIVER:
+			write_spi_con(REG_MCPARAM0, (mcparam0_read & 0x1F) | RF_RECEIVER);
+			RF_Mode = RF_RECEIVER;					//RF in RX mode
+			break;
+		case RF_SYNTHESIZER:
+			write_spi_con(REG_MCPARAM0, (mcparam0_read & 0x1F) | RF_SYNTHESIZER);
+			RF_Mode = RF_SYNTHESIZER;				//RF in Synthesizer mode
+			break;
+		case RF_STANDBY:
+			write_spi_con(REG_MCPARAM0, (mcparam0_read & 0x1F) | RF_STANDBY);
+			RF_Mode = RF_STANDBY;					//RF in standby mode
+			break;
+		case RF_SLEEP:
+			write_spi_con(REG_MCPARAM0, (mcparam0_read & 0x1F) | RF_SLEEP);
+			RF_Mode = RF_SLEEP;						//RF in sleep mode
+			break;
+	} /* end switch (mode) */
+
+}
+
+unsigned char ReadFIFO(void)
+	
+		{
+								//volatile BYTE tmp0RFIE = PHY_IRQ1_En;
+			CSDAT =0;
+			while (command != NU);
+			command = RD;
+			SPI0DAT = 0xff;
+			while (command != NU);
+			A3 =  SPI0DAT;
+			CSDAT =1;
+								//PHY_IRQ1_En = tmp0RFIE;
+			return (A3);
+		}
+		
+	void di_(void)
+	{		unsigned char  dat,  a;
+			unsigned char i = 0;
+					i =read_spi_con(RF_STANDBY);
+					a = 0;
+					while (a<32)
+					{
+						dat = ReadFIFO();
+						RxPacket[a] = dat;	
+						a++;
+					}
+					SetRFMode_my(RF_RECEIVER);
+	}	
+	void dia(void)
+				{
+					unsigned char a;
+					diagnoz[0] = read_spi_con(0x0); 	
+					diagnoz[1] = read_spi_con(0x0d); 
+					diagnoz[2] = read_spi_con(0x0e); 
+					diagnoz[3] = read_spi_con(0x1d); 
+					diagnoz[4] = read_spi_con(0x1c);  // КОЛ-БАЙТ
+					diagnoz[5] = read_spi_con(0x14);  //   RSSI Value bits мощность
+					diagnoz[6] = read_spi_con(0x1a);  //  bit 3-1 TXOPVAL<2:0>:Transmit Output Power Value bits (1 step 3dB)   000= 13 dBm  
+					diagnoz[7] = read_spi_con(0x12);
+					diagnoz[8] = read_spi_con(0x1e);
+				   diagnoz[9] = read_spi_con(0x04);
+				    diagnoz[10] = read_spi_con(0x1f);
+					a=0;
+											//	di_();
+				}	
+	void init_TX(void)
+			{	unsigned char i;
+			for(i = 0;i <32;i++)
+				TxPacket[i] = i;
+			
+			}
+			
+	void init_RX(void)
+			{	unsigned char i;
+			for(i = 0;i <32;i++)
+				RxPacket[i] = 0;
+			
+			}	
+
+	void Send_Packet_my(void)
+	{
+		unsigned int i;
+		unsigned char a,a1,a2,dat;
+		SetRFMode_my(RF_STANDBY);
+		
+		write_spi_con(0x1F, ((InitConfigRegsPer[0x1F] & 0xBF)| FIFO_STBY_ACCESS_WRITE));
+		write_spi_con(0x0D, (InitConfigRegsPer[0x0D] | IRQ1_FIFO_OVERRUN_CLEAR ));
+		write_spi_con(0x0E, ((InitConfigRegsPer[0x0E]) | 0x02));
+		write_spi_con(0x16, 0x97);	//на передачу
+		dia();
+		//WriteFIFO(TxPacketLen+1);
+		WriteFIFO(16);	//Node_adrs
+		WriteFIFO(0x23);
+		init_RX();
+		init_TX();
+		for(i=0; i< packetlength; i++)
+		{
+		WriteFIFO(TxPacket[i]);
+		}
+
+		a1 =read_spi_con(0x1f); 
+		write_spi_con(0x1F,0x40);
+		a2 =read_spi_con(0x1f); 
+		a= 0;
+			while (a<32)
+					{
+						dat = ReadFIFO();
+						RxPacket[a] = dat;	
+						a++;
+					}
+		write_spi_con(0x1F,a1);
+
+
+
+	//	INTCONbits.GIE = 0;    //?
+		//до этого момента на ноге прерывания 0
+		SetRFMode_my(RF_TRANSMITTER);
+		dia();
+		for(i=0;i<255;i++)
+		{
+	_nop_();_nop_();_nop_();_nop_();
+	_nop_();_nop_();_nop_();_nop_();
+		}
+
+	while(!(flag_int0));
+		flag_int0 = 0;
+	//здесь должно на ноге irq1 появиться лог 1
+	//     IT01CF    = 0xFE;
+    //     IE        = 0x85; ( 0x05) EX1 EX0 )
+	//    TCON     (IE1   IE0 )  0 - к уровню           1 - к фронту
+
+	//
+	//
+		{
+		_nop_();	//ожидание прерывания будет заменено временной задержкой.
+		_nop_();
+		_nop_();
+		_nop_();
+		}
+
+	//	INTCONbits.GIE = 1;   //?
+		dia();
+		
+		
+		write_spi_con(0x16, 0x68);
+		SetRFMode_my(RF_RECEIVER);	//rfmode = ресивер
+		//Reset FIFO  очистить буфер после передачи
+		i = read_spi_con(REG_IRQPARAM0);
+		write_spi_con(REG_IRQPARAM0, (i | 0x01));
+
+	}	
+unsigned char ReceiveFrame_my(void)
+		{
+			unsigned char  dat, node_adrs;
+			unsigned char i = 0;
+				SetRFMode_my(RF_STANDBY);
+			///////////////////////
+			write_spi_con(0x1F, ((InitConfigRegsPri[0x1F] & 0xBF)| FIFO_STBY_ACCESS_READ)|FIFO_AUTOCLR_OFF);// 
+			write_spi_con(0x0D, (InitConfigRegsPri[0x0D] | IRQ1_FIFO_OVERRUN_CLEAR ));
+			write_spi_con(0x0E, ((InitConfigRegsPri[0x0E]) | 0x02));
+		//	write_spi_con(0x16, 0x97);		   // 0x97
+			SetRFMode_my(RF_RECEIVER);
+			init_RX();
+			dia();
+			//////////////////////////
+			
+			while(!(flag_int1));
+			dia();
+				SetRFMode_my(RF_STANDBY);
+			RxPacketLen = 16;  // ReadFIFO();	
+			flag_int0 = 0;
+			node_adrs = ReadFIFO();
+			RxPacketLen = (RxPacketLen-1);
+			
+
+			while(RxPacketLen--)
+			{
+			flag_int0 = 0;
+			dat = ReadFIFO();
+			RxPacket[i] = dat;
+			i++;
+			};
+		RxPacketLen = i;
+			
+	flag_int1 = 0;
+
+			//write_spi_con(0x0D, (0x0a));	//перезагрузить фифо
+				i = read_spi_con(REG_IRQPARAM0);
+		        write_spi_con(REG_IRQPARAM0, (i | 0x01));
+			
+			
+			return node_adrs;
+		}
+	void irq0_int(void) interrupt 0
+	 	{
+
+
+			//  IE0 = 0;                        // Clear the SPIF flag
+			  flag_int0 = 1;
+		}
+		void irq1_int(void) interrupt 2
+	 	{
+
+
+			//  IE1 = 0;                        // Clear the SPIF flag
+			  flag_int1 = 1;
+		}
+
+	 void spi_int(void) interrupt 6
+	 	{
+
+
+			  SPIF = 0;  
+			  if (command == WR1)
+			  	{
+					SPI0DAT = A2;
+					command = WR2;
+				}                      // Clear the SPIF flag
+			  else if (command == WR2)
+			   		{command = NU;
+						if   (!cs_con )
+							{cs_con = 1;
+						  // CSCON = 1;
+							}
+					}
+			  else if (command == RD)
+			  		{command = NU;
+					
+					}
+		}	
+
 	
