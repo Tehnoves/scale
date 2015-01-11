@@ -44,11 +44,12 @@
 #include <math.h>
 #include <stdlib.h>
 #include "F350_FlashPrimitives.h"
+#include <andr.h>
 
 #define ON              0x01
 #define OFF             0x00 
-#define pervij		   0x00
-#define vtoroi		   0x01
+#define pervij		    0x00
+#define vtoroi		    0x01
 
 // Peripheral specific initialization functions,
 // Called from the Init_Device() function
@@ -60,7 +61,12 @@ bit left_old,left_new,leftchench;
 bit right_old,right_new,rightchench;
 bit tara_old,tara_new,tarachench;
 bit null_old,null_new,nullchench;
-bit flag_sek;
+bit flag_sek,flag_sekunda,flag_k;
+
+
+  bit cs_con = 1;
+  bit cs_dat = 1;
+  bit one,two,flag_int0=0,flag_int1=0;
 
 
 char code baza[9][5]= {
@@ -109,9 +115,9 @@ sbit P26 = P2^6;
 sbit P27 = P2^7;
 
 sbit right = P3^1;
-sbit left = P3^2;
-sbit tara = P3^3;
-sbit nul = P3^4;
+sbit left  = P3^2;
+sbit tara  = P3^3;
+sbit nul   = P3^4;
 
 
 
@@ -127,9 +133,9 @@ bit ADC_buf_overflov;
 bit ADC_buf_empty=1; 
 							 //  for ADC
 #define Len_ADC_Buf 16       //16
-	unsigned long xdata ADC_buf[Len_ADC_Buf];
-	unsigned long xdata *start_ADC_buf;
-	unsigned long xdata *end_ADC_buf;
+	//unsigned long xdata ADC_buf[Len_ADC_Buf];
+	//unsigned long xdata *start_ADC_buf;
+	//unsigned long xdata *end_ADC_buf;
 
 	unsigned long xdata ADC_srednee;
 	unsigned long xdata rrez1=0,rrez1_copy=0,rrez2=0,rrez2_copy=0;
@@ -196,7 +202,81 @@ bit ADC_buf_empty=1;
 		{30000,200,10,5},
 		{50000,400,20,10}
    };
-
+		const char code InitConfigRegsPer[] = {
+		/* 0 */				CHIPMODE_STBYMODE | FREQBAND_915 | VCO_TRIM_00,   //0b00110000
+		/* 1 */				MODSEL_OOK | DATAMODE_PACKET | IFGAIN_0 | DATAMODE_BUFFERED | OOKTHRESHTYPE_PEAK,          //0b01101100 
+		/* 2 */				0x0a,  //b`00001001,										  //0b00001001
+		/* 3 */			   0x13,  //0b00010011,										  //0b00010011	
+		/* 4 */				OOKFLOORTHRESH_VALUE,							  //0b00001100
+		/* 5 */				0x0f,  //0b00001111,                                       //0b00001111 FIFOSIZE_64 | FIFO_THRSHOLD_1
+		/* 6 */				153,
+		/* 7 */				122,
+		/* 8 */				68,
+		/* 9 */				0,
+		/* 10 0x0a*/			0,
+		/* 11 0x0b*/			0,
+		/* 12 0x0c*/			DEF_PARAMP | PA_RAMP_23,						  //0b00111000
+		/* 13 0x0d*/			IRQ1_TX_TXDONE,                                   //0b00001000        **          
+		/* 14 0x0e*/ 			IRQ0_TX_START_FIFONOTEMPTY | IRQ1_PLL_LOCK_PIN_ON,            //0b00010001
+		/* 15 0x0f*/ 			RSSIIRQTHRESH_VALUE,														//0b00000000
+		/* 16 0x10*/ 			PASSIVEFILT_378 | RXFC_FOPLUS100,                                             //0b10100011  **
+		/* 17 0x11*/			DEF_RXPARAM1 | FO_100,														  //0b00111000
+		/* 18 0x12*/			DEF_RXPARAM2 | POLYPFILT_ON | SYNC_SIZE_32 | SYNC_ON | SYNC_ERRORS_0,        // 0b10111000  ** 
+		/* 19 0x13*/			DEF_RXPARAM3,                   // 0b00000111                                 //0b00000111  **
+		/* 20 0x14*/			0,
+		/* 21 0x15*/			OOK_THRESH_DECSTEP_000 | OOK_THRESH_DECPERIOD_000 | OOK_THRESH_AVERAGING_00,  //0b00000000
+		/* 22 0x16*/ 			0x97, // 1st byte of Sync word,
+		/* 23 0x17*/ 			0x37, // 2nd byte of Sync word,
+		/* 24 0x18*/ 			0xF1, // 3rd byte of Sync word,
+		/* 25 0x19*/ 			0xC3, // 4th byte of Sync word,
+		/* 26 0x1a*/ 			FC_200 | TXPOWER_13,                                           //0b01110000 
+		/* 27 0x1b*/ 			CLKOUT_OFF | CLKOUT_12800,                                     //0b00000000
+		/* 28 0x1c*/ 			MANCHESTER_OFF | 2,										       //0b00000010
+		/* 29 0x1d*/ 			NODEADRS_VALUE,                                                //0
+		/* 30 0x1e*/ 			PKT_FORMAT_FIXED | PREAMBLE_SIZE_3 | WHITENING_OFF | CRC_ON | ADRSFILT_NONE,  //0b01001000
+ 		/* 31 0x1f*/ 			FIFO_AUTOCLR_ON | FIFO_STBY_ACCESS_WRITE                      //0b00000000
+							};	
+			
+	const char code InitConfigRegsPri[] = {
+		/* 0 */				CHIPMODE_STBYMODE | FREQBAND_915 | VCO_TRIM_00,   //0b00110000
+		/* 1 */				MODSEL_OOK | DATAMODE_PACKET | IFGAIN_0 | DATAMODE_BUFFERED | OOKTHRESHTYPE_PEAK,          //0b01101100 
+		/* 2 */				0x0a,  //0b00001001,										  //0b00001001
+		/* 3 */				0x13,  //0b00010011,										  //0b00010011	
+		/* 4 */				OOKFLOORTHRESH_VALUE,							  //0b00001100
+		/* 5 */				0x1f,  //0b00001111,                                       //0b00001111 FIFOSIZE_64 | FIFO_THRSHOLD_1
+		/* 6 */				153,
+		/* 7 */				122,
+		/* 8 */				68,
+		/* 9 */				0,
+		/* 10 0x0a*/			0,
+		/* 11 0x0b*/			0,
+		/* 12 0x0c*/			DEF_PARAMP | PA_RAMP_23,						  //0b00111000
+		/* 13 0x0d*/			IRQ0_RX_STDBY_FIFOEMPTY | IRQ1_RX_STDBY_CRCOK,                                   //0b00001000        **          
+		/* 14 0x0e*/ 			IRQ1_PLL_LOCK_PIN_ON,            //0b00010001
+		/* 15 0x0f*/ 			RSSIIRQTHRESH_VALUE,														//0b00000000
+		/* 16 0x10*/ 			PASSIVEFILT_378 | RXFC_FOPLUS100,                                             //0b10100011  **
+		/* 17 0x11*/			DEF_RXPARAM1 | FO_100,														  //0b00111000
+		/* 18 0x12*/			DEF_RXPARAM2 | POLYPFILT_ON | SYNC_SIZE_32 | SYNC_ON | SYNC_ERRORS_0,        // 0b10111000  ** 
+		/* 19 0x13*/			DEF_RXPARAM3,                   // 0b00000111                                 //0b00000111  **
+		/* 20 0x14*/			0,
+		/* 21 0x15*/			OOK_THRESH_DECSTEP_000 | OOK_THRESH_DECPERIOD_000 | OOK_THRESH_AVERAGING_00,  //0b00000000
+		/* 22 0x16*/ 			0x97, // 1st byte of Sync word,
+		/* 23 0x17*/ 			0x37, // 2nd byte of Sync word,
+		/* 24 0x18*/ 			0xF1, // 3rd byte of Sync word,
+		/* 25 0x19*/ 			0xC3, // 4th byte of Sync word,
+		/* 26 0x1a*/ 			FC_200 | TXPOWER_13,                                           //0b01110000 
+		/* 27 0x1b*/ 			CLKOUT_OFF | CLKOUT_12800,                                     //0b00000000
+		/* 28 0x1c*/ 			MANCHESTER_OFF | 13,										       //0b00000010
+		/* 29 0x1d*/ 			NODEADRS_VALUE,                                                //0
+		/* 30 0x1e*/ 			PKT_FORMAT_FIXED | PREAMBLE_SIZE_3 | WHITENING_OFF | CRC_ON | ADRSFILT_NONE,  //0b01001000
+ 		/* 31 0x1f*/ 			FIFO_AUTOCLR_ON | FIFO_STBY_ACCESS_READ                      //0b00000000
+							};	
+							
+							
+			unsigned char xdata  TxPacket[packetlength];
+			unsigned char  xdata RxPacket[packetlength];						
+							
+							
   
  struct cons var_cons;
 
@@ -212,35 +292,17 @@ bit ADC_buf_empty=1;
  FLADDR xdata addr; 
  unsigned char  idata ii,jj;
  unsigned char idata yt;
- unsigned char code shift[8] =  {0x80,0x40,0x20,0x10,0x08,0x04,0x02,0x01};
+ //unsigned char code shift[8] =  {0x80,0x40,0x20,0x10,0x08,0x04,0x02,0x01};
  unsigned char code codtabl[18]={~0xf6,~0x30,~0xe5,~0xf1,~0x33,~0xd3,~0xd7,~0x70,
                                 ~0xf7,~0xf3,~0x02,~0x40,~0x20,~0x10,~0x80,~0x04,
                                 ~0x01,~0x08 };
 
- unsigned char  pdata  regen[5] = {'1','2','3','4','5'};
+ unsigned char  pdata  regen[5];// = {'1','2','3','4','5'};
  
  void init_flash(void);
- 	void copi_kalibr_ves(void);
- void point(int f, char xdata *hu)
-	 	{
-			
-		int t;
-			hu[0] = '<';
-			if (f >= 0)
-				hu[0] = ' ';
-			else 
-				hu[0] = '-';
-				f = abs(f);
-			t = f / 100;
-				hu[1] = t + '0';
-		    t = f % 100;
-        	t = t / 10;
-			hu[2] = t + '0';
-            t = f % 100;
-        	t = t % 10;
-			hu[3] = t+'0';
-            hu[4] = 0;
-      	} 
+ void copi_kalibr_ves(void);
+	
+	
 
 //******************************
 //
@@ -249,7 +311,7 @@ bit ADC_buf_empty=1;
 //******************************
 
 
-
+/*
 void ADC_calculate(void)
 
 	{ // static unsigned long sred;
@@ -308,17 +370,14 @@ void ADC_calculate(void)
        }
     	
 	}
+	*/
 void Timer_Init()
 {
 	
-	//    TMOD      = 0x02;
-    //CKCON     = 0x01;
-    //TMR2CN    = 0x28;
-	
-	  TMOD      = 0x02;
+	TMOD      = 0x02;
     CKCON     = 0x01;
     TMR2CN    = 0x04;
-		TR2 = 1; 
+	TR2 = 0; 
 	
 }
 
@@ -353,10 +412,10 @@ void Port_IO_Init()
 											// P2.2  -  Unassigned,  Open-Drain, Digital
 											// P2.3  -  Unassigned,  Open-Drain, Digital
 
-     P0MDOUT   = 0xFF;
+    P0MDOUT   = 0xFF;
     P1MDOUT   = 0xFF;
     P2MDOUT   = 0xFF;
-  //  P3MDOUT   = 0x1F; 
+											//  P3MDOUT   = 0x1F; 
 	P3MDOUT   = 0x01;
     P0SKIP    = 0xC0;
     XBR0      = 0x02;
@@ -364,21 +423,19 @@ void Port_IO_Init()
 
 }
 
-void Oscillator_Init()
-{
-    OSCICN    = 0x83;
-}
+	void Oscillator_Init()
+	{
+		OSCICN    = 0x83;
+	}
 
-void Interrupts_Init()
-{
-									//IT01CF    = 0x76;
-									//IE        = 0xC7;
-	IT01CF    = 0x76;
- //   IE        = 0x82;
-	IE        = 0xA2;
+	void Interrupts_Init()
+	{
+										
+		IT01CF    = 0x76;
+		IE        = 0xA2;
 
-}
- void start_timer0(void)
+	}
+	void start_timer0(void)
 
     {
 									// TMOD |=2;
@@ -389,8 +446,9 @@ void Interrupts_Init()
     }
 // Initialization function for device,
 // Call Init_Device() from your main program
-void Init_Device(void)
-{
+
+	void Init_Device(void)
+	{
 	
 	jj= 1;
 	ii = 0;
@@ -413,17 +471,17 @@ void Init_Device(void)
 		{  
 		char I;
 		
-   	//	AA.co1.npv =20000;
-	//	AA.co1.nmpv =100;
-	//	AA.co1.diskreta =10;
-		
-   		//BB.variable.k1 =2;
-		//BB.variable.k2 =5;
-		//BB.variable.diskr =12345;
+															//	AA.co1.npv =20000;
+															//	AA.co1.nmpv =100;
+															//	AA.co1.diskreta =10;
+																
+																//BB.variable.k1 =2;
+																//BB.variable.k2 =5;
+																//BB.variable.diskr =12345;
 		FLASH_PageErase((FLADDR) addr);
 		for (I=0;I<sizeof(AA);I++)
 				FLASH_ByteWrite ((FLADDR)addr+I,AA.con[I]);
-		//addr += 8;
+																//addr += 8;
 		for (I=0;I<sizeof(BB);I++)
 				FLASH_ByteWrite ((FLADDR)addr+I+sizeof(AA),BB.yy[I]);	
 		}	
@@ -443,28 +501,37 @@ void Init_Device(void)
 			
 		for (i=0;i<sizeof(AA);i++)
    				AA.con[i]=FLASH_ByteRead ((FLADDR)addr+i);
-				//addr +=8;	
+			
 			
 		for (i=0;i<sizeof(BB);i++)
 			{
 			
-				//y = sizeof(AA);
-				//y = (FLADDR)addr+i+sizeof(AA);
+				
    				BB.yy[i]=FLASH_ByteRead ((FLADDR)addr+i+sizeof(AA));	
 			}
 		if (AA.co1.cod !=  0x55)
 			init_flash();	
 		}
+	
+	//*****************************
+	//
+	//  Прописываем Flash первый
+	//  раз
+	//
+	//*****************************
+		
+		
+		
 	void init_flash(void)
 	{
-			AA.co1.cod = 0x55;	
-			AA.co1.npv =20000;
-			AA.co1.nmpv =100;
-			AA.co1.diskreta =10;
+			AA.co1.cod  = 0x55;	
+			AA.co1.npv  = 20000;
+			AA.co1.nmpv = 100;
+			AA.co1.diskreta = 10;
 		
-			BB.variable.k1 =0;
-			BB.variable.k2 =0;
-			BB.variable.diskr =12345;
+			BB.variable.k1 = 0;
+			BB.variable.k2 = 0;
+			BB.variable.diskr = 12345;
 			init_write();
 			init_read();
 	}
@@ -500,40 +567,50 @@ void Init_Device(void)
 				_nop_();
 		}
 
-void test(void)
-	{
-		char i,j=0x3a;
-		for (i=0;i<10;i++)
+	//********************************
+	//
+	//  Вывод тестирования индикатора
+	//
+	//********************************
+	
+	void test(void)
+		{
+			char i,j=0x3a;
+			null_5 = 1;
+			null_4 = 1;
+			null_3 = 1;
+			null_2 = 1;
+			for (i=0;i<8;i++)
+					{
+						start(j+i);
+						delay(40);
+						if (!tara)
+						{
+							tara_old = 0;
+							tara_new = 0;
+							flag_k=1;
+							break;
+						}
+					}
+					
+			if (!flag_k)
 				{
-					start(j+i);
-					delay(40);
-				}
-				/*
-					start(0x3b);
-					delay(40);
-					start(0x3c);
-					delay(40);
-					start(0x3d);
-					delay(40);
-					start(0x3e);
-					delay(40);
-					start(0x3f);
-					delay(40);
-					start(0x40);
-					delay(40);
-					start(0x41);
-					delay(40);
-				*/
 					regen[0] ='1';
-		regen[1] ='2';
-		regen[2] ='3';
-		regen[3] ='4';
-		regen[4] ='5';
-		delay(40);
-		delay(40);
-		delay(40);
-		delay(40);
-	}
+					regen[1] ='2';
+					regen[2] ='3';
+					regen[3] ='4';
+					regen[4] ='5';
+				}
+			
+			
+		}
+	
+	//*****************************
+	//
+	//  Вывод 5 нулей
+	//
+	//*****************************
+	
 	
 	void copi_null(void)
 	{
@@ -550,17 +627,12 @@ void test(void)
 	
 	}
 	
-	void proba(void)
-	{
-		float a;
-		char i;
-		for(i=0;i<5;i++)
-		xvost[i] =baza[1][i];
-		a = (1+1)/10.0;
-		
-		a = a*atoi(xvost);
-		sprintf(regen,"%0.5u",(int)a); 
-	}
+	
+	//*****************************
+	//
+	//  Вывод веса калибровки .
+	//
+	//*****************************
 	
 	void copi_kalibr_ves(void)
 	{
@@ -572,8 +644,20 @@ void test(void)
 		
 		a = a*atoi(xvost);
 		sprintf(regen,"%0.5u",(int)a); 
+		null_5 = 1;
+			null_4 = 1;
+			null_3 = 1;
+			null_2 = 1;
+			null_5 = (regen[0] != '0');
+		if (!null_5)
+			null_4 = (regen[1] != '0');
 	}
 	
+	//*****************************
+	//
+	//  Вывод таблицы весов
+	//
+	//*****************************
 	
 	void copi(char nu)
 	{
@@ -591,6 +675,12 @@ void test(void)
 	
 	}
 	
+	//*****************************
+	//
+	//  Вывод таблицы % веса
+	//
+	//*****************************
+	
 	void copi_dis(char nu)
 	{
 		char i;
@@ -607,33 +697,60 @@ void test(void)
 			}
 	
 	}
+	
+	void sekunda(void)
+	{
+			//null_5 = 0;
+			//null_4 = 0;
+			//null_3 = 0;
+			//null_2 = 0;
+			
+			{
+				if (flag_sek)
+					{
+						flag_sek = 0;
+						sprintf(regen,"%0.5u",(int)sek); 
+						null_2 = (regen[3] != '0');
+					}		
+			}
+	}
+	
+	
+	//*****************************
+	//
+	//  Инициализация параметров
+	//
+	//*****************************
+	
+	
+	
 	void init_param(void)
 		{null_4 = 1;
 		null_3 = 1;
 		null_2  = 1;
-		//copi(3);
+													//copi(3);
 		index =0;
-		regen[0] ='1';
-		regen[1] ='2';
-		regen[2] ='3';
-		regen[3] ='4';
-		regen[4] ='5';
+													//regen[0] ='1';
+													//regen[1] ='2';
+													//regen[2] ='3';
+													//regen[3] ='4';
+													//regen[4] ='5';
 		P2= 0xff;		P13 = 1;
 		P14 = 0;
 		P15 = 0;
 		P16 = 0;
 		P17 = 0;
 		Init_Device();
-		addr=0x1d00;  
-	//	init_write();
 		addr=0x1c00;  
-		BB.variable.k1 =0;
-		BB.variable.k2 =0;
-		BB.variable.diskr =0;
+															//	init_write();
+		//addr=0x1c00;  
+		//BB.variable.k1 =0;
+		//BB.variable.k2 =0;
+		//BB.variable.diskr =0;
 		init_read();	
-		AA.co1.npv =0;
-		AA.co1.nmpv =0;
-		AA.co1.diskreta =0;
+		//AA.co1.npv =0;
+		//AA.co1.nmpv =0;
+		//AA.co1.diskreta =0;
 		left_old=1;left_new=1;leftchench=0;
 		right_old=1;right_new=1;rightchench=0;
 		tara_old=1;tara_new=1;tarachench=0;
@@ -644,7 +761,12 @@ void test(void)
 		flag_sek = 0;
 		msek = 0;
 		sek= 0;
+		flag_sekunda = 0;
+		flag_k =0;
 		}	
+		
+		
+		
 	void tes(char k1,char sel)
 		{
 			right_new = right;
@@ -692,12 +814,12 @@ void test(void)
 		}
 	void kalib_1(void)
 	{
+		
 		switch (k2)
 						{
 							case 0:
 								init_read();
 								index = BB.variable.k1;
-								//k2 = 1;
 								k1 =  7;
 								copi(index);
 								break;
@@ -718,17 +840,30 @@ void test(void)
 								
 								break;
 							case 3:
-							
+								null_5 = 0;
+								null_4 = 0;
+								null_3 = 0;
+								null_2 = 0;
+								flag_sekunda = 1;
 								TR2 = 1;
 								break;
 							case 4:
 								sek = 0;
 								msek = 0;
-							
 								copi_kalibr_ves();
 								break;
 							case 5:
+							// запомнить ведущее число
 								TR2 = 1;
+								null_5 = 0;
+								null_4 = 0;
+								null_3 = 0;
+								null_2 = 0;
+								flag_sekunda = 1;
+								break;
+							case 6:
+								flag_k = 0;
+								// это конец калибровки
 								break;
 						}	
 	}
@@ -738,6 +873,8 @@ void test(void)
 			
 	void kalib(void)
 	{
+		if (!flag_sekunda)
+		{
 		tara_new = tara;
 			if (tara_old != tara_new) 
 				{
@@ -745,33 +882,15 @@ void test(void)
 						{
 							k2++;         //7
 							kalib_1();
-							//copi_dis(index);
 						}
 						tara_old = tara_new;
-		if (flag_sek)
-		{
-			flag_sek = 0;
-			sprintf(regen,"%0.3d",sek);
-		}		
-						/*
-						switch (k2)
-						{
-							case 0:
-							{
-								break;
-							}
-							case 1:
-							{}
-							case 2:
-							{}
-							case 3:
-							{}
-							case 4:
-							{}
-							case 5:
-								break;
-						}	*/
-				}
+						
+					}	
+		}			
+		if (flag_sekunda)				
+			sekunda();
+						
+				
 			
 	}
 	
@@ -779,80 +898,42 @@ void test(void)
 void main(void)
 	{
 		PCA0MD &= ~0x40;
-	//	sek = 12;
-	//	sprintf(xvost,"%0.5u",(int)sek);  
 		_nop_();
-		proba();
 		init_param();
-		// pr = 12340;
-		//half = diskret / 2;
-		
-		//init_read();
-		/*
-				P13 = 0;
-		P14 = 0;
-		P15 = 0;
-		P16 = 0;
-		P17 = 1;
-			while (1)
-			{	
-				P2= 0xff;
-				P2 = codtabl[0];
-				P2 = codtabl[1];
-				P2 = codtabl[2];
-				P2 = codtabl[3];
-				P2 = codtabl[4];
-				P2 = codtabl[5];
-				P2 = codtabl[6];
-				P2 = codtabl[7];
-				P2 = codtabl[8];
-				P2 = codtabl[9];
-				
-				
-			}
-			*/
+		//addr = 0x1c00;
+		//FLASH_PageErase (addr);
+		test();
+		if (flag_k)
 			{
-			//tmp3 = zn(pr);
-			//pr++;
-			}
-		//addr=0x1E00+400;              	// конец памяти или последний 512-байтный блок
-									// в него будем писать константы
-									//
-									// мах вес НВП             дискрет                             1/2_дискрета         ADC_одного дискрета  NULL
-									//
-									// long    unsign char     unsigned char                        unsigned char       long                 long
-			//copi(index);		
-
-			//
-			null_5 = 0;
-			null_4 = 0;
-			null_3 = 0;
-			null_2 = 0;
-			while (1)
-			{
-				if (flag_sek)
-					{
-						flag_sek = 0;
-						sprintf(regen,"%0.5u",(int)sek); 
-						null_2 = (regen[3] != '0');
-					}		
-			}
-			
-			
-			
-			
 			copi(index);
 			kalib_1();
-		while (1)
+			while (flag_k)
 				{
 					kalib();
 					tes(k1,selekt);
 					_nop_();
-					
 				}
+			null_5 = 1;
+			null_4 = 1;
+			null_3 = 1;
+			null_2 = 1;
 			
+			regen[0] ='1';
+			regen[1] ='2';
+			regen[2] ='3';
+			regen[3] ='4';
+			regen[4] ='5';
+			}
+			while (1);
 			
 	}
+	
+	//*****************************
+	//
+	//  Регенерация видеопамяти
+	//
+	//*****************************
+	
 	void Timer0 (void) interrupt 1
 
 		{   
@@ -906,6 +987,15 @@ void main(void)
 			TR0=1;
 
 		}
+		
+	
+	//*****************************
+	//
+	//  Секундная метка
+	//
+	//*****************************
+		
+		
 	void Timer2 (void) interrupt 5
 	{
 		TF2H = 0;
@@ -916,6 +1006,13 @@ void main(void)
 			sek++;
 			flag_sek = 1;
 		}
+		if (sek > 20)
+			{
+			flag_sekunda = 0;
+			k2++;
+			kalib_1();	
+			TR2 = 0;
+			}
 		_nop_();
 	}
 	
