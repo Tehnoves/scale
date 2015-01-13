@@ -136,6 +136,7 @@ bit null_5,null_4,null_3,null_2;
 bit flag_ocifrovka;
 bit ADC_buf_overflov;
 bit ADC_buf_empty=1; 
+bit one,two;
 							 //  for ADC
 #define Len_ADC_Buf 16       //16
 	//unsigned long xdata ADC_buf[Len_ADC_Buf];
@@ -308,7 +309,7 @@ bit ADC_buf_empty=1;
  
  void init_flash(void);
  void copi_kalibr_ves(void);
-	
+unsigned char read_spi_con(unsigned char A1);	
 	
 
 //******************************
@@ -406,36 +407,36 @@ void SPI_Init()
 
 void Port_IO_Init()
 {
-											// P0.0  -  SCK  (SPI0), Open-Drain, Digital
-											// P0.1  -  MISO (SPI0), Open-Drain, Digital
-											// P0.2  -  MOSI (SPI0), Open-Drain, Digital
-											// P0.3  -  Unassigned,  Open-Drain, Digital
-											// P0.4  -  Unassigned,  Open-Drain, Digital
-											// P0.5  -  Unassigned,  Open-Drain, Digital
-											// P0.6  -  Skipped,     Open-Drain, Digital
-											// P0.7  -  Skipped,     Open-Drain, Digital
+	   // P0.0  -  SCK  (SPI0), Push-Pull,  Digital
+    // P0.1  -  MISO (SPI0), Open-Drain, Digital
+    // P0.2  -  MOSI (SPI0), Push-Pull,  Digital
+    // P0.3  -  Unassigned,  Push-Pull,  Digital
+    // P0.4  -  Unassigned,  Push-Pull,  Digital
+    // P0.5  -  Unassigned,  Push-Pull,  Digital
+    // P0.6  -  Skipped,     Push-Pull,  Digital
+    // P0.7  -  Skipped,     Push-Pull,  Digital
 
-											// P1.0  -  Unassigned,  Open-Drain, Digital
-											// P1.1  -  Unassigned,  Open-Drain, Digital
-											// P1.2  -  Unassigned,  Open-Drain, Digital
-											// P1.3  -  Unassigned,  Open-Drain, Digital
-											// P1.4  -  Unassigned,  Open-Drain, Digital
-											// P1.5  -  Unassigned,  Open-Drain, Digital
-											// P1.6  -  Unassigned,  Open-Drain, Digital
-											// P1.7  -  Unassigned,  Open-Drain, Digital
-											// P2.0  -  Unassigned,  Open-Drain, Digital
-											// P2.1  -  Unassigned,  Open-Drain, Digital
-											// P2.2  -  Unassigned,  Open-Drain, Digital
-											// P2.3  -  Unassigned,  Open-Drain, Digital
+    // P1.0  -  Unassigned,  Push-Pull,  Digital
+    // P1.1  -  Unassigned,  Push-Pull,  Digital
+    // P1.2  -  Unassigned,  Push-Pull,  Digital
+    // P1.3  -  Unassigned,  Push-Pull,  Digital
+    // P1.4  -  Unassigned,  Push-Pull,  Digital
+    // P1.5  -  Unassigned,  Push-Pull,  Digital
+    // P1.6  -  Unassigned,  Push-Pull,  Digital
+    // P1.7  -  Unassigned,  Push-Pull,  Digital
+    // P2.0  -  Unassigned,  Push-Pull,  Digital
+    // P2.1  -  Unassigned,  Push-Pull,  Digital
+    // P2.2  -  Unassigned,  Push-Pull,  Digital
+    // P2.3  -  Unassigned,  Push-Pull,  Digital
 
-    P0MDOUT   = 0xFF;
+    P0MDOUT   = 0xFD;
     P1MDOUT   = 0xFF;
     P2MDOUT   = 0xFF;
-											//  P3MDOUT   = 0x1F; 
-	P3MDOUT   = 0x01;
+    P3MDOUT   = 0x1F;
     P0SKIP    = 0xC0;
     XBR0      = 0x02;
     XBR1      = 0xC0;
+	
 
 }
 
@@ -446,9 +447,10 @@ void Port_IO_Init()
 
 	void Interrupts_Init()
 	{
-										
-		IT01CF    = 0x76;
-		IE        = 0xA2;
+		IT01CF    = 0xFE;
+							
+		//IT01CF    = 0x76;
+		IE        = 0xE7;
 
 	}
 	void start_timer0(void)
@@ -458,6 +460,7 @@ void Port_IO_Init()
 									// TH0 = 0x10;
       TR0=1;
       ET0=1;
+		TR2 = 1;
 									// EA=1;
     }
 // Initialization function for device,
@@ -741,7 +744,10 @@ void Port_IO_Init()
 	
 	
 	void init_param(void)
-		{null_4 = 1;
+		{
+			one=0;
+			two=0;
+			null_4 = 1;
 		null_3 = 1;
 		null_2  = 1;
 													//copi(3);
@@ -756,9 +762,24 @@ void Port_IO_Init()
 		P15 = 0;
 		P16 = 0;
 		P17 = 0;
+		flag_sek = 0;
+		msek = 0;
+		sek= 0;
+		flag_sekunda = 0;	
 		Init_Device();
+		 TR2 = 1;           // Timer0 enabled
+	// reset
+	reset = 1;
+	while (!one);
+	// 100ucek 1
+	reset = 0;
+	while (!two);
+	//  5 mcek 0
+	_nop_();
+	msek =0 ;
+	 TR2 = 0;
 		addr=0x1c00;  
-															//	init_write();
+												//	init_write();
 		//addr=0x1c00;  
 		//BB.variable.k1 =0;
 		//BB.variable.k2 =0;
@@ -774,10 +795,7 @@ void Port_IO_Init()
 		index = 0;
 		k2 = 0;
 		selekt = 1;
-		flag_sek = 0;
-		msek = 0;
-		sek= 0;
-		flag_sekunda = 0;
+		
 		flag_k =0;
 		}	
 		
@@ -916,6 +934,8 @@ void main(void)
 		PCA0MD &= ~0x40;
 		_nop_();
 		init_param();
+		val = read_spi_con(0x01);
+		
 		//addr = 0x1c00;
 		//FLASH_PageErase (addr);
 		test();
@@ -1016,6 +1036,9 @@ void main(void)
 	{
 		TF2H = 0;
 		msek++;
+			one = 1;
+		if (msek==2)
+			two = 1;
 		if (msek > 30)
 		{
 			msek = 0;
