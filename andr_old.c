@@ -9,7 +9,7 @@
 
 
 #include "compiler_defs.h"
-#include "C8051F350_defs.h"
+#include "c8051F350_defs.h"
 
 
 
@@ -100,8 +100,8 @@ unsigned char  xdata RxPacket[packetlength];
   sbit IRQ0 = P0^6;    
   sbit IRQ1 = P0^7;  
   sbit reset = P1^0;
-  sbit CSCON= P1^3;
-  sbit CSDAT = P1^2;
+  sbit CSCON= P1^2;
+  sbit CSDAT = P1^3;
  
   bit cs_con = 1;
   bit cs_dat = 1;
@@ -143,52 +143,34 @@ void Port_IO_Init()
 {
    
 
-// This example is intended to be used with the SPI0_Slave example.
-//
-// Pinout:
-//
-// P0.0 - SPI SCK    (digital output, push-pull)
-// P0.1 - SPI MISO   (digital input, open-drain)
-// P0.2 - SPI MOSI   (digital output, push-pull)
-// P0.3 - SPI NSS    (digital output, push-pull)
-//
-// P0.6 - LED        (digital output, push-pull)
-
-
-  // P0.0  -  SCK  (SPI0), Push-Pull,  Digital
+    // P0.0  -  SCK  (SPI0), Push-Pull,  Digital
     // P0.1  -  MISO (SPI0), Open-Drain, Digital
     // P0.2  -  MOSI (SPI0), Push-Pull,  Digital
-    // P0.3  -  Unassigned,  Open-Drain, Digital
-    // P0.4  -  Unassigned,  Open-Drain, Digital
-    // P0.5  -  Unassigned,  Open-Drain, Digital
-    // P0.6  -  Unassigned,  Push-Pull,  Digital
-    // P0.7  -  Unassigned,  Push-Pull,  Digital
+    // P0.3  -  Unassigned,  Push-Pull,  Digital
+    // P0.4  -  Unassigned,  Push-Pull,  Digital
+    // P0.5  -  Unassigned,  Push-Pull,  Digital
+    // P0.6  -  Unassigned,  Push-Pull,  Digital   irq1
+    // P0.7  -  Unassigned,  Push-Pull,  Digital   irq0
 
-    // P1.0  -  Unassigned,  Push-Pull,  Digital
-    // P1.1  -  Unassigned,  Open-Drain, Digital
-    // P1.2  -  Unassigned,  Push-Pull,  Digital
-    // P1.3  -  Unassigned,  Push-Pull,  Digital
-    // P1.4  -  Unassigned,  Open-Drain, Digital
-    // P1.5  -  Unassigned,  Open-Drain, Digital
-    // P1.6  -  Unassigned,  Open-Drain, Digital
+    // P1.0  -  Unassigned,  Push-Pull,  Digital   reset
+    // P1.1  -  Unassigned,  Push-Pull,  Digital
+    // P1.2  -  Unassigned,  Push-Pull,  Digital   cscon
+    // P1.3  -  Unassigned,  Push-Pull,  Digital   csdata
+    // P1.4  -  Unassigned,  Push-Pull,  Digital
+    // P1.5  -  Unassigned,  Push-Pull,  Digital
+    // P1.6  -  Unassigned,  Push-Pull,  Digital
     // P1.7  -  Unassigned,  Open-Drain, Digital
 
-    //P0MDOUT   = 0xC5;
-   // P1MDOUT   = 0x0D;
-   // XBR0      = 0x02;
-   /// XBR1      = 0xC0;
-
-
-   // P0MDOUT   = 0xC5;
-   // P1MDOUT   = 0x0D;
-   // XBR0      = 0x02;
-   // XBR1      = 0xC0;
-
-               P0MDOUT   = 0xFB;
-    P1MDOUT   = 0x0D;
-    P0SKIP    = 0x01;
+    P0MDOUT   = 0xFD;
+    P1MDOUT   = 0x7F;
     XBR0      = 0x02;
     XBR1      = 0xC0;
+
+          //     P0MDOUT   = 0xFB;
+    //P1MDOUT   = 0x0D;
+    //P0SKIP    = 0x01;
+    //XBR0      = 0x02;
+    //XBR1      = 0xC0;
     
 
 

@@ -119,12 +119,12 @@ sbit left  = P3^2;
 sbit tara  = P3^3;
 sbit nul   = P3^4;
 
-sbit CSCON= P1^2;
+sbit CSCON= P1^1;
 sbit IRQ0 = P0^6;    
 sbit IRQ1 = P0^7;  
 sbit reset = P1^0;
  
-sbit CSDAT = P1^1;
+sbit CSDAT = P1^2;
 
 union
 	{
@@ -387,6 +387,7 @@ void Timer_Init()
     TMR2CN    = 0x04;
 	TR2 = 0; 
 	
+	
 }
 
 void SPI_Init()
@@ -450,7 +451,7 @@ void Port_IO_Init()
 		IT01CF    = 0xFE;
 							
 		//IT01CF    = 0x76;
-		IE        = 0xE7;
+		IE        = 0xE2;
 
 	}
 	void start_timer0(void)
