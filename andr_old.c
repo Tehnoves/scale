@@ -21,6 +21,14 @@
 #include <stdlib.h>
 #include <andr.h>
 
+#define Len_ADC_Buf 16  
+#define ON              0x01
+#define OFF             0x00 
+#define pervij		    0x00
+#define vtoroi		    0x01
+
+
+
 		
 		const char code InitConfigRegsPer[] = {
 		/* 0 */				CHIPMODE_STBYMODE | FREQBAND_915 | VCO_TRIM_00,   //0b00110000
@@ -106,10 +114,30 @@ unsigned char  xdata RxPacket[packetlength];
   bit cs_con = 1;
   bit cs_dat = 1;
   bit one,two,flag_int0=0,flag_int1=0;
+  bit flag_ocifrovka;
+bit ADC_buf_overflov;
+bit ADC_buf_empty=1; 
+
+union
+	{
+  unsigned long Long;
+  unsigned char Byte[4];
+	} xdata ADC;
+
 
 unsigned char xdata A2,A3,i,a5,RxPacketLen;
 unsigned char xdata command,val;
 unsigned char xdata msek,diagnoz[12];
+
+	unsigned long xdata ADC_buf[Len_ADC_Buf];
+	unsigned long xdata *start_ADC_buf;
+	unsigned long xdata *end_ADC_buf;
+
+	unsigned long xdata ADC_srednee;
+	unsigned long xdata rrez1=0,rrez1_c;
+	unsigned long xdata rrez1_copy=0,rrez2=0,rrez2_copy=0;
+
+
 
  void Timer_Init()
 {
@@ -138,6 +166,23 @@ void ADC_Init()
     ADC0BUF   = 0x40;
     ADC0MUX   = 0x08;
 }
+/*
+//######################################################
+
+void ADC_Init()
+   {
+    ADC0CN    = 0x00;
+    ADC0CF    = 0x00;       //    0x04;
+    ADC0MD    = 0x80;
+  							//  ADC0CLK   = 0x09;
+    ADC0MUX   = 0x78;
+							//	 ADC0DECH  = 0x04;
+ 							//   ADC0DECL  = 0x17;
+	ADC0CLK   = 0x07;
+    ADC0DECH  = 0x01;
+    ADC0DECL  = 0x95;
+   }
+*/
 
 void Port_IO_Init()
 {
@@ -188,6 +233,9 @@ void Interrupts_Init()
 	   EIE1      = 0x08;
     IT01CF    = 0xfe;
     IE        = 0xE5;
+   // EIE1      = 0x08;     ??????????
+   // IT01CF    = 0x07;
+   // IE        = 0xC5;
 
 
 }
@@ -236,6 +284,77 @@ void Init_Device(void)
 	 TR2 = 0;
 
 }
+
+
+//******************************
+//
+//	 наверное скользящее целое
+//
+//******************************
+
+
+
+void ADC_calculate(void)
+
+	{ // static unsigned long sred;
+   	ADC.Byte[1]=1;//ADC0H;
+   	ADC.Byte[2]=2;//ADC0M;
+   	ADC.Byte[3]=3;//ADC0L;
+
+   	if(ADC_buf_empty)						// флаг пустого буфера
+       {									// Time_request = 0;
+						 start_ADC_buf 		= ADC_buf;		// начало буфера
+						 end_ADC_buf 		= ADC_buf;		// конец буфера
+						 end_ADC_buf[0]		= ADC.Long;
+						 ADC_buf_empty		= OFF;
+						 ADC_buf_overflov	= OFF;			// начальная инициализация
+						 ADC_srednee		= 0;
+       }
+    else
+       {
+					 if(ADC_buf_overflov)
+							{
+								   ADC_srednee -= start_ADC_buf[0];	         // зачем ?
+								   ADC_srednee += ADC.Long;	    // текущее значение АЦП
+																// sred = ADC_srednee;
+																//  sred/=Len_ADC_Buf;		  // 16 значений в буфере
+								
+									
+									if (flag_ocifrovka == pervij)
+										{ rrez1 = ADC_srednee;				}
+									else
+										{ rrez2 = ADC_srednee;
+										}
+									 flag_ocifrovka = ~flag_ocifrovka;
+								  
+								   //  окончание оцифровки
+
+
+
+							}
+					else 
+							ADC_srednee += ADC.Long;
+					if(start_ADC_buf<=end_ADC_buf)
+						{
+							   if(++end_ADC_buf == &ADC_buf[Len_ADC_Buf]) 
+									{end_ADC_buf=ADC_buf;
+									start_ADC_buf++;
+									ADC_buf_overflov=ON;}  
+						}
+					 else
+						{ 
+								   ++end_ADC_buf;
+								   ++start_ADC_buf;
+								   if(start_ADC_buf >= &ADC_buf[Len_ADC_Buf]) 
+											start_ADC_buf=ADC_buf;
+						}
+					 end_ADC_buf[0]=ADC.Long;   // 
+       }
+    	
+	}
+	
+
+
 
 void write_spi_con(unsigned char A1, unsigned char value)
 	{
@@ -670,3 +789,20 @@ void main(void)
 			//  IE1 = 0;                        // Clear the SPIF flag
 			  flag_int1 = 1;
 		}
+	//*********************************
+	//
+	//
+	//
+	//*********************************
+
+	void  ADC_convert(void) interrupt 10
+
+	{
+	 	ADC_calculate();
+   	
+   		AD0INT =0;	 		// если флаг установлен то преобразование закончено
+					 		// его нужно сбросить программно
+		ADC0MD=0x82;		// пока не пришел запрос продолжаем оцифровку			 
+					 
+					 	
+	}
