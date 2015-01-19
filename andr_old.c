@@ -1,9 +1,15 @@
- //***************************************
+//***************************************
 //
 //	Проект весы для Андреевича
+//
 //	07.05.14
 //	29.05.14		СБОРКА МАКЕТА
 //  23.09.14
+//  16.01.15   пошел SPI добавлен ADC
+//  17/01/15   temper
+//
+//
+//
 //***************************************
 
 
@@ -21,11 +27,17 @@
 #include <stdlib.h>
 #include <andr.h>
 
-#define Len_ADC_Buf 16  
+#define Len_ADC_Buf 16   //16  
 #define ON              0x01
 #define OFF             0x00 
 #define pervij		    0x00
 #define vtoroi		    0x01
+#define AD0ISEL		    0x04
+#define AD0VREF		    0x02
+#define AD0PL		    0x04
+#define AD0BPHE		    0x07
+#define AD0BPLE		    0x06
+
 
 
 
@@ -102,9 +114,11 @@
 	unsigned char xdata  TxPacket[packetlength];
 unsigned char  xdata RxPacket[packetlength];				
 					
-   
+//   SBIT (AD0VREF, ADC0CF, 2);   
+//sbit AD0VREF = ADC0CF^4;  
+//SBIT (AD0ISEL, ADC0CF, 4);     
   sbit A00 = P0^0; 
-   sbit  A01 = P0^1; 
+  sbit  A01 = P0^1; 
   sbit IRQ0 = P0^6;    
   sbit IRQ1 = P0^7;  
   sbit reset = P1^0;
@@ -115,8 +129,8 @@ unsigned char  xdata RxPacket[packetlength];
   bit cs_dat = 1;
   bit one,two,flag_int0=0,flag_int1=0;
   bit flag_ocifrovka;
-bit ADC_buf_overflov;
-bit ADC_buf_empty=1; 
+  bit ADC_buf_overflov;
+  bit ADC_buf_empty=1; 
 
 union
 	{
@@ -125,9 +139,9 @@ union
 	} xdata ADC;
 
 
-unsigned char xdata A2,A3,i,a5,RxPacketLen;
-unsigned char xdata command,val;
-unsigned char xdata msek,diagnoz[12];
+	unsigned char xdata A2,A3,i,a5,RxPacketLen;
+	unsigned char xdata command,val;
+	unsigned char xdata msek,diagnoz[12];
 
 	unsigned long xdata ADC_buf[Len_ADC_Buf];
 	unsigned long xdata *start_ADC_buf;
@@ -136,6 +150,7 @@ unsigned char xdata msek,diagnoz[12];
 	unsigned long xdata ADC_srednee;
 	unsigned long xdata rrez1=0,rrez1_c;
 	unsigned long xdata rrez1_copy=0,rrez2=0,rrez2_copy=0;
+	float xdata temper,temper2;
 
 
 
@@ -151,38 +166,82 @@ void UART_Init()
     SCON0     = 0x10;
 }
 
-void SPI_Init()
-{
-    SPI0CFG   = 0x40;
-    SPI0CN    = 0x01;
-    SPI0CKR   = 0x97;		   //  	 0x1D
-	IT0 = 1;
-	IT1 = 1;
-}
+	void SPI_Init() 
+	{
+		SPI0CFG   = 0x40;
+		SPI0CN    = 0x01;
+		SPI0CKR   = 0x97;		   //  	 0x1D
+		IT0 = 1;
+		IT1 = 1;
+	}
 
 void ADC_Init()
 {
-    ADC0MD    = 0x80;
-    ADC0BUF   = 0x40;
-    ADC0MUX   = 0x08;
-}
-/*
-//######################################################
+  
+//вариант измерения температуры	
 
-void ADC_Init()
-   {
-    ADC0CN    = 0x00;
-    ADC0CF    = 0x00;       //    0x04;
-    ADC0MD    = 0x80;
-  							//  ADC0CLK   = 0x09;
-    ADC0MUX   = 0x78;
-							//	 ADC0DECH  = 0x04;
- 							//   ADC0DECL  = 0x17;
-	ADC0CLK   = 0x07;
-    ADC0DECH  = 0x01;
-    ADC0DECL  = 0x95;
-   }
-*/
+   
+ 
+	
+							//ADC0CN    = 0x10;
+	//ADC0CN  |=  (1<<AD0PL);	// биполярный
+						  ADC0CN  &= ~(1<<AD0PL);	// однополярном
+							//	GPIO |= (1<<dclk);
+							
+							//  GPIO &= ~(1<< dclk);
+	
+							//ADC0CF  |= (1<<AD0ISEL);
+							//ADC0CF  |=  (1<<AD0VREF);		
+
+							//	AD0PL: Полярность АЦП0. 
+							//0: АЦП функционирует в однополярном режиме(результат в прямом двоичном коде). 
+							//1: АЦП функционирует в биполярном режиме(результат в дополнительном коде). 
+
+
+							
+	ADC0CF  &= ~ (1<<AD0ISEL);   // ФильтрSINC3.  внутреннееVREF
+	ADC0CF  &= ~ (1<<AD0VREF);
+	
+							/////////ADC0CF    = 0x0;      //0x10;   // быстрый фильтр
+							// AD0ISEL=0;   // ФильтрSINC3.
+							// AD0ISEL= 1;  //  ФильтрFast. 
+							//AD0VREF=0;  // АЦП0 использует внутреннееVREF (2.5В). Сброс этого бита в0 включает внутренний ИОН. 
+											// 1: АЦП0 использует внешнееVREF. 
+							// AD0VREF=1;  // АЦП0 использует внешнееVREF
+							
+							
+    ADC0MD    = 0x80;  		///Бит7: AD0EN: Бит включения АЦП0. 
+							//000: Режим ожидания.
+							//001: Полная внутренняя калибровка(калибровка смещения и крутизны).
+							//010: Единичное преобразование. 
+						
+						
+    ADC0MUX   = 0x78;    	// датчик температуры
+							//  ADC0MUX   = 0xFF;    // тензодатчик 
+		
+		
+		
+		
+		
+	ADC0BUF   = 0x40;
+							// AD0BPHE		    0x07
+							// AD0BPLE		    0x06
+											// Биты5-4:AD0BPS: Настройка буферов для положительного канала. 
+							// 00 = Буферы не используются, т.е. зашунтированы накоротко(по умолчанию). 
+							// 01 = Используется«младший» буфер. 
+							// 10 = Используется«старший» буфер. 
+							// 11 = Зарезервировано.
+				
+				
+	
+	//    370 ~ 50Hz 
+	ADC0CLK   = 0x09;
+	ADC0DECH  = 0x01;
+    ADC0DECL  = 0x13;
+	
+	
+}
+
 
 void Port_IO_Init()
 {
@@ -230,48 +289,82 @@ void Interrupts_Init()
 {
    
 
-	   EIE1      = 0x08;
-    IT01CF    = 0xfe;
-    IE        = 0xE5;
-   // EIE1      = 0x08;     ??????????
-   // IT01CF    = 0x07;
-   // IE        = 0xC5;
+								//   EIE1      = 0x08;
+							   // IT01CF    = 0xfe;
+							   // IE        = 0xE5;
+								
+	
+	EIE1      = 0x08;
+    IT01CF    = 0x07;
+    IE        = 0xC5;
+	
+	
+	
+							   // EIE1      = 0x08;     ??????????
+							   // IT01CF    = 0x07;
+							   // IE        = 0xC5;
 
 
 }
 
  void Timer2_Init (void)
 	{
-	  
-	   CKCON     = 0x10;
-      TMR2CN    = 0x04;
+		  
+		CKCON     = 0x10;
+		TMR2CN    = 0x04;
 
 	   	
 
   						//  TMR2CN    = 0x04;
-	TMR2L     = 0x06d;  //0x4a;   ///0x3e;
-	TMR2H     = 0xf6;  //0xa0;   //0X50;			 // b
-	TMR2RLH   = 0xf6;  //0X50;
-	TMR2RLL   = 0x6d;  //0X3e;   
+		TMR2L     = 0x06d;  //0x4a;   ///0x3e;
+		TMR2H     = 0xf6;  //0xa0;   //0X50;			 // b
+		TMR2RLH   = 0xf6;  //0X50;
+		TMR2RLL   = 0x6d;  //0X3e;   
 	     
 	
 	}
+	
+	
+	
+void init_all(void)
+
+	{  
+		char ii;
+		for (ii=0;ii<16;ii++)			 // на кой фиг
+    		ADC_buf[ii] =0;
+
+		ADC.Long=0;
+						//byte_cnt = 0;
+						//byte_cnt1 =0;
+						//buf1_doubl = 0;   // флаг буфера
+						//buf2_doubl = 0;	  // флаг буфера
+						//Switch = RXD;	  // 485 на прием
+		temper =0.0;
+		temper2 = 0.0;
+   		ADC0MD=0x81;	  // 7бит вкл/откл АЦП 1бит уалибровка
+  						
+	}	
+	
+	
+	
 // Initialization function for device,
 // Call Init_Device() from your main program
 void Init_Device(void)
-{Oscillator_Init();
+	{Oscillator_Init();
     Timer_Init();
-  //  UART_Init();
+																				//  UART_Init();
    
-   // ADC_Init();
+  
     Port_IO_Init();
-	 SPI_Init();
-    
-   Timer2_Init();
+	SPI_Init();
+    ADC_Init();
+	Timer2_Init();
     Interrupts_Init();
-	 one = 0;
-	 two = 0;
-	 msek = 0;
+	one = 0;
+	two = 0;
+	msek = 0;
+	
+	/*
 	 TR2 = 1;           // Timer0 enabled
 	// reset
 	reset = 1;
@@ -281,9 +374,9 @@ void Init_Device(void)
 	while (!two);
 	//  5 mcek 0
 	_nop_();
-	 TR2 = 0;
-
-}
+	 TR2 = 0;*/
+	init_all();
+	}
 
 
 //******************************
@@ -296,10 +389,12 @@ void Init_Device(void)
 
 void ADC_calculate(void)
 
-	{ // static unsigned long sred;
-   	ADC.Byte[1]=1;//ADC0H;
-   	ADC.Byte[2]=2;//ADC0M;
-   	ADC.Byte[3]=3;//ADC0L;
+	{ 
+		//float tr;
+		// static unsigned long sred;
+   	ADC.Byte[1]=ADC0H;
+   	ADC.Byte[2]=ADC0M;
+   	ADC.Byte[3]=ADC0L;
 
    	if(ADC_buf_empty)						// флаг пустого буфера
        {									// Time_request = 0;
@@ -321,9 +416,11 @@ void ADC_calculate(void)
 								
 									
 									if (flag_ocifrovka == pervij)
-										{ rrez1 = ADC_srednee;				}
+										{ temper = ((float)(ADC_srednee/16)*2450/0x7fffff-54.300)/.205 ;				}
 									else
-										{ rrez2 = ADC_srednee;
+										{   //tr = (ADC_srednee/16.0)*2450/0x7fffff;
+											//tr -= 54.3;
+											temper2 = ((float)(ADC_srednee/16)*2450/0x7fffff-54.300)/.205 ;
 										}
 									 flag_ocifrovka = ~flag_ocifrovka;
 								  
@@ -656,7 +753,7 @@ void main(void)
 		Init_Device();
 		flag_int0 = 0;
 		flag_int1 = 0;
-
+		while (1);
 
 		IE0 = 0;
 		IE1 = 0;

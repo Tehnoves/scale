@@ -1,12 +1,15 @@
 
 /////////////////////////////////////
+//
 //  Проект весы для Андреевича     //
 //  процессор F314
+//
 //  03.01.15 старт
 //  04.01.15 флэш 
 //  09.01.15 KN
 //  10.01.16 kalibr
-//           двойная буферизация
+//  15.01.16 SPI
+//           
 //
 //
 //
@@ -133,9 +136,9 @@ union
 	} xdata ADC;
 	
 bit null_5,null_4,null_3,null_2;	
-bit flag_ocifrovka;
-bit ADC_buf_overflov;
-bit ADC_buf_empty=1; 
+//bit flag_ocifrovka;
+//bit ADC_buf_overflov;
+//bit ADC_buf_empty=1; 
 bit one,two;
 							 //  for ADC
 #define Len_ADC_Buf 16       //16
@@ -143,7 +146,7 @@ bit one,two;
 	//unsigned long xdata *start_ADC_buf;
 	//unsigned long xdata *end_ADC_buf;
 
-	unsigned long xdata ADC_srednee;
+	//unsigned long xdata ADC_srednee;
 	unsigned long xdata rrez1=0,rrez1_copy=0,rrez2=0,rrez2_copy=0;
 
 
@@ -312,73 +315,6 @@ bit one,two;
 unsigned char read_spi_con(unsigned char A1);	
 	
 
-//******************************
-//
-//	 наверное скользящее целое
-//
-//******************************
-
-
-/*
-void ADC_calculate(void)
-
-	{ // static unsigned long sred;
-   	ADC.Byte[1]=1;//ADC0H;
-   	ADC.Byte[2]=2;//ADC0M;
-   	ADC.Byte[3]=3;//ADC0L;
-
-   	if(ADC_buf_empty)						// флаг пустого буфера
-       {									// Time_request = 0;
-						 start_ADC_buf 		= ADC_buf;		// начало буфера
-						 end_ADC_buf 		= ADC_buf;		// конец буфера
-						 end_ADC_buf[0]		= ADC.Long;
-						 ADC_buf_empty		= OFF;
-						 ADC_buf_overflov	= OFF;			// начальная инициализация
-						 ADC_srednee		= 0;
-       }
-    else
-       {
-					 if(ADC_buf_overflov)
-							{
-								   ADC_srednee -= start_ADC_buf[0];	         // зачем ?
-								   ADC_srednee += ADC.Long;	    // текущее значение АЦП
-																// sred = ADC_srednee;
-																//  sred/=Len_ADC_Buf;		  // 16 значений в буфере
-								
-									
-									if (flag_ocifrovka == pervij)
-										{ rrez1 = ADC_srednee;				}
-									else
-										{ rrez2 = ADC_srednee;
-										}
-									 flag_ocifrovka = ~flag_ocifrovka;
-								  
-								   //  окончание оцифровки
-
-
-
-							}
-					else 
-							ADC_srednee += ADC.Long;
-					if(start_ADC_buf<=end_ADC_buf)
-						{
-							   if(++end_ADC_buf == &ADC_buf[Len_ADC_Buf]) 
-									{end_ADC_buf=ADC_buf;
-									start_ADC_buf++;
-									ADC_buf_overflov=ON;}  
-						}
-					 else
-						{ 
-								   ++end_ADC_buf;
-								   ++start_ADC_buf;
-								   if(start_ADC_buf >= &ADC_buf[Len_ADC_Buf]) 
-											start_ADC_buf=ADC_buf;
-						}
-					 end_ADC_buf[0]=ADC.Long;   // 
-       }
-    	
-	}
-	*/
 void Timer_Init()
 {
 	
