@@ -6,17 +6,45 @@
 //	29.05.14		СБОРКА МАКЕТА
 //  23.09.14
 //  16.01.15   пошел SPI добавлен ADC
-//  17/01/15   temper
+//  17.01.15    temper 
+//  20.01.15    cell
+//  23.01.15 структура переменных, 2-я буферизация
 //
 //
 //
 //***************************************
+//
+//    начало компоновки и трассировки
+//							НмПВ
+//			2000кг 1кг        20   = 2000
+//			3000кг 1кг        20   = 3000
+//			5000кг 2кг        40   = 2500
+//			10000кг 5кг       100  = 2000
+//			15000кг 5кг       100  = 3000
+//			20000кг 10кг      200  = 2000
+//			30000кг 10кг      200  = 3000
+//			50000кг 20кг      400  = 2500
+//
+//
+//
+//	Модель		НПВ, кг	НмПВ, кг	Цена деления, кг	Высота весов, мм	Масса весов, кг	Цена, руб.
+//	МК-2000Д	2000	20			1					550						12			48000
+//	МК-3000Д	3000	20			1					620						15			49900
+//	МК-5000Д	5000	40			2					750						15			59900
+//	МК-10000Д	10000	100			5					970						27			75000
+//	МК-15000Д	15000	100			5					1120					47			85000
+//	МК-20000Д	20000	200			10					1220					50			95000
+//	МК-30000Д	30000	200			10					1400					101			39900
+//	МК-50000Д	50000	400			20					1700					160			190000
+//
+//
+/////////////////////////////////////
 
 
 
 #include "compiler_defs.h"
 #include "c8051F350_defs.h"
-
+#include "F350_FlashPrimitives.h"
 
 
 //#include <c8051f350.h>                       // SFR declarations
@@ -37,9 +65,9 @@
 #define AD0PL		    0x04
 #define AD0BPHE		    0x07
 #define AD0BPLE		    0x06
-
-
-
+#define temperatura     0x01
+#define cell            0x02
+#define otl
 
 		
 		const char code InitConfigRegsPer[] = {
@@ -112,11 +140,11 @@
  		/* 31 0x1f*/ 			FIFO_AUTOCLR_ON | FIFO_STBY_ACCESS_READ                      //0b00000000
 							};				
 	unsigned char xdata  TxPacket[packetlength];
-unsigned char  xdata RxPacket[packetlength];				
+	unsigned char  xdata RxPacket[packetlength];				
 					
-//   SBIT (AD0VREF, ADC0CF, 2);   
-//sbit AD0VREF = ADC0CF^4;  
-//SBIT (AD0ISEL, ADC0CF, 4);     
+								//SBIT (AD0VREF, ADC0CF, 2);   
+								//sbit AD0VREF = ADC0CF^4;  
+								//SBIT (AD0ISEL, ADC0CF, 4);     
   sbit A00 = P0^0; 
   sbit  A01 = P0^1; 
   sbit IRQ0 = P0^6;    
@@ -131,7 +159,19 @@ unsigned char  xdata RxPacket[packetlength];
   bit flag_ocifrovka;
   bit ADC_buf_overflov;
   bit ADC_buf_empty=1; 
-
+							
+  FLADDR xdata addr; 
+  
+  
+ //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ char * ttr_buf;
+ unsigned char   *tr_buf;
+ unsigned char  	buf[40];			// это передача
+ unsigned char 	buf2[40];
+ unsigned char 	buf1[40];
+ unsigned char 	temp3[40];
+	
+	
 union
 	{
   unsigned long Long;
@@ -146,13 +186,115 @@ union
 	unsigned long xdata ADC_buf[Len_ADC_Buf];
 	unsigned long xdata *start_ADC_buf;
 	unsigned long xdata *end_ADC_buf;
-
-	unsigned long xdata ADC_srednee;
+unsigned long cell_long;
+	unsigned long xdata ADC_srednee,cell_long2;
 	unsigned long xdata rrez1=0,rrez1_c;
 	unsigned long xdata rrez1_copy=0,rrez2=0,rrez2_copy=0;
 	float xdata temper,temper2;
+	unsigned char ind,flag_xvost,flag_zanyato2,flag_zanyato1;
+	char sel;
+	
+//*************************************************
+//
+//   Перечень команда
+//
+//	1 калибровка
+//	6 ноль
+//  7 полный вес  
+//  2  спать
+//  3  подъем 
+//  4  измерения
+//  5  условный ноль
+//  8 команда выполнена
+//
+//************************************************
+	
+	
+	
+//
+//
+// это пакет принятый от головы
+//   команда, вес, температура, напряжение, ведущее число, уровень нуля
+//								
+	
+	char xdata bu[] ="3,1234567.23,12.34,1234,1234567,1,1";
+	
+//***************************************************** 
+// 
+//  пакет калибровки
+//
+//  команда,ведущее число, уровень нуля, k1, k2
+  //char xdata bu[] ="1, 1234, 1234567, 1, 1";	
+	char xdata tm[10];
+ struct var 
+	 {
+		 char k1;
+		 char k2;
+		 long diskr;
+	 };
+	 
+	 struct var perem;
+	 
+	 union global2
+	 {
+		 struct var variable;
+		 char yy[sizeof(perem)];
+	 };
+	 
+	 union global2 xdata BB;	
+	 
+struct cons
+		{ 
+
+		long npv;
+		int  nmpv;
+		char diskreta;
+		char half_diskret;
+	 
+		}; 
+
+ struct cons var_cons;
 
 
+	struct cons2
+		{ 
+		char cod;		
+		struct cons var;
+		int vedushee;
+		long avtonol;
+		
+		}; 
+	struct cons2 var_cons2;	
+ union global 
+	{ struct cons2 co1;
+	  char con[sizeof(var_cons2)];
+	};
+
+
+
+ union global xdata AA;
+ 
+struct pac 
+	 {
+		 char comm;
+		 long ves;
+		 char temp;
+		 float v;
+		 int vedushee;
+		 long avtonull;
+		 char k1;
+		 char k2;
+	 };
+	 
+union pack
+	{
+  struct pac var;
+  unsigned char Byte[sizeof(struct pac)];
+	} xdata packet;	 
+	 
+	void init_flash(void);
+	void init_write(void);
+	void init_read(void);
 
  void Timer_Init()
 {
@@ -363,7 +505,15 @@ void Init_Device(void)
 	one = 0;
 	two = 0;
 	msek = 0;
-	
+	addr=0x1c00;  
+												//init_write();
+		addr=0x1c00;  
+		//BB.variable.k1 =0;
+		//BB.variable.k2 =0;
+		init_read();	
+		//AA.co1.npv =0;
+		//AA.co1.nmpv =0;
+		//AA.co1.diskreta =0;
 	/*
 	 TR2 = 1;           // Timer0 enabled
 	// reset
@@ -377,7 +527,83 @@ void Init_Device(void)
 	 TR2 = 0;*/
 	init_all();
 	}
+//********************************
+	//
+	//	  запись FLASH
+	//
+	//********************************
 
+	void init_write(void)
+		{  
+		char I;
+		
+															//	AA.co1.npv =20000;
+															//	AA.co1.nmpv =100;
+															//	AA.co1.diskreta =10;
+																
+																//BB.variable.k1 =2;
+																//BB.variable.k2 =5;
+																//BB.variable.diskr =12345;
+		FLASH_PageErase((FLADDR) addr);
+		for (I=0;I<sizeof(AA);I++)
+				FLASH_ByteWrite ((FLADDR)addr+I,AA.con[I]);
+																//addr += 8;
+		for (I=0;I<sizeof(BB);I++)
+				FLASH_ByteWrite ((FLADDR)addr+I+sizeof(AA),BB.yy[I]);	
+		}	
+
+	
+	//**********************
+	//
+	//	 чтение FLASH
+	//
+	//**********************
+	
+	
+	void init_read(void)
+		{
+		char i;
+		//	int y;
+			
+		for (i=0;i<sizeof(AA);i++)
+   				AA.con[i]=FLASH_ByteRead ((FLADDR)addr+i);
+			
+			
+		for (i=0;i<sizeof(BB);i++)
+			{
+			
+				
+   				BB.yy[i]=FLASH_ByteRead ((FLADDR)addr+i+sizeof(AA));	
+			}
+		if (AA.co1.cod !=  0x55)
+			init_flash();	
+		}
+	
+	//*****************************
+	//
+	//  Прописываем Flash первый
+	//  раз
+	//
+	//*****************************
+		
+		
+
+	void init_flash(void)
+	{
+			AA.co1.cod  = 0x55;	
+			AA.co1.var.npv  = 20000;
+			AA.co1.var.nmpv = 100;
+			AA.co1.var.diskreta = 10;
+			AA.co1.var.half_diskret = 5;
+			AA.co1.vedushee  = 1234;	
+			AA.co1.avtonol  = 0;	
+		
+			BB.variable.k1 = 0;
+			BB.variable.k2 = 0;
+			BB.variable.diskr = 12345;
+			init_write();
+			init_read();
+	}
 
 //******************************
 //
@@ -387,9 +613,15 @@ void Init_Device(void)
 
 
 
-void ADC_calculate(void)
+void ADC_calculate(char sel)
 
 	{ 
+	ind++;
+	if (ind%0x1f)
+		sel = temperatura;
+	else
+		sel =  cell;
+		
 		//float tr;
 		// static unsigned long sred;
    	ADC.Byte[1]=ADC0H;
@@ -416,12 +648,18 @@ void ADC_calculate(void)
 								
 									
 									if (flag_ocifrovka == pervij)
-										{ temper = ((float)(ADC_srednee/16)*2450/0x7fffff-54.300)/.205 ;				}
+										if (sel== temperatura)
+											{ temper = ((float)(ADC_srednee/16)*2450/0x7fffff-54.300)/.205 ;}
+										else
+											{ cell_long = ADC_srednee/16;}
 									else
-										{   //tr = (ADC_srednee/16.0)*2450/0x7fffff;
-											//tr -= 54.3;
-											temper2 = ((float)(ADC_srednee/16)*2450/0x7fffff-54.300)/.205 ;
-										}
+										if (sel== temperatura)
+											{   //tr = (ADC_srednee/16.0)*2450/0x7fffff;
+												//tr -= 54.3;
+												temper2 = ((float)(ADC_srednee/16)*2450/0x7fffff-54.300)/.205 ;
+											}
+										else
+											{cell_long2 = ADC_srednee/16;}
 									 flag_ocifrovka = ~flag_ocifrovka;
 								  
 								   //  окончание оцифровки
@@ -744,13 +982,159 @@ unsigned char ReceiveFrame_my(void)
 			
 			return node_adrs;
 		}
+	void null_tm(void)
+	{
+		char i;
+		for(i=0;i<10;i++)
+			tm[i] = 0;	
+	}
+	void copy(char n, char k)
+	{
+		char i;
+		null_tm();
+		for(i=n;i<k+1;i++)
+			tm[i-n] = bu[i];
+	}
+		void razborka(void)
+		{
+			/*
+													///tm[0] = sizeof(packet);
+			copy (0,0);
+			packet.var.comm = atoi(tm);
+			copy(2,8);
+			packet.var.ves = atol(tm);
+			copy(10,11);
+			packet.var.temp = atoi(tm);
+			copy(13,17);
+			packet.var.v = atof(tm);
+			copy(19,22);
+			packet.var.vedushee = atoi(tm);
+			copy(24,31);
+			packet.var.avtonull = atol(tm);*/
+		}
 
+		/*
+		
+			char xdata bu[] ="3,1234567,23,12.34";
+	
+	
+	
+struct pac 
+	 {
+		 char comm;
+		 long ves;
+		 char temp;
+		 float v;
+	 };
+	 
+union pack
+	{
+  struct pac var;
+  unsigned char Byte[sizeof(struct pac)];
+	} xdata packet;	 
+		char xdata tm[10]; 
 
+		*/
+	void raspichivaem(void)
+	{
+		
+	}
+    //**********************************************
+	//
+	//
+	//
+	//**********************************************
+	//    передача мастеру 
+    //
+    //
+	//
+	//*****************************************************************************
+	//   команда, вес, температура, напряжение, ведущее число, уровень нуля
+    //   "3,1234567.23,12.34,1234,1234567,1,1";
 
+#ifdef otl														
+														
+ void otv(void)
+		{
+		int ij;
+/*	
+		strcpy(buf1,"3,");
+		sprintf(temp3,"%8.8lu,",cell_long);   // вес
+			strcat(buf1,temp3);
+		//sprintf(temp3,"%+2.2u,",(int)temper);   // вес
+		//strcat(buf1,temp3);
+		//sprintf(temp3,"%+2.2d,",(int)temper);   // температура
+		strcat(buf1,temp3);
+		//////////////sprintf(temp3,"%2.2f,",packet.var.v);
+		strcat(buf1,temp3);
+		//sprintf(temp3,"%+4.4u,",(int)temper);   // вес
+		//strcat(buf1,temp3);
+		sprintf(temp3,"%6.6u,",packet.var.vedushee);   // ведущее число
+	strcat(buf1,temp3);
+		//sprintf(temp3,"%8.8lu,",packet.var.avtonull);   // автоноль
+		strcat(buf1,temp3);
+		sprintf(temp3,"%1.1u,",packet.var.k1);   // ведущее число
+		strcat(buf1,temp3);
+		sprintf(temp3,"%1.1u,",packet.var.k2);   // ведущее число
+		strcat(buf1,temp3);
+	  */
+
+		
+//	PIE1bits.TXIE=0x00;
+		if (flag_xvost)															//
+		  	{	// 2
+				//if (!flag_peredacha)
+					{flag_zanyato1 = 1;
+					//strcpy(buf,buf1);      //1
+			
+					flag_zanyato1 = 0;}
+				//else
+					//{flag_zanyato2 = 1;
+					//strcpy(buf2,buf1);		//2
+					//flag_zanyato2 =  0;}
+			}
+		  else
+		  	{	// 1
+			//	if (flag_peredacha)
+					{flag_zanyato2 = 1;
+					//strcpy(buf2,buf1);   // 2
+					flag_zanyato2 = 0;
+				//	flag_xvost = ~flag_xvost;
+}
+				//else
+				//	{flag_zanyato1 = 1;
+				//	strcpy(buf,buf1);   // 1
+				//	flag_zanyato1 = 0;}
+			}								//ij=strlen(buf1);
+				flag_xvost = ~flag_xvost;	
+	//	PIE1bits.TXIE=0x01;	
+				
+		}
+#endif		
+		
 void main(void)
 	{
 		PCA0MD &= ~0x40; 
-		Init_Device();
+		cell_long = 15234321;
+		temper = 22.34;
+		packet.var.v = 12.34;
+		packet.var.vedushee = 765432;
+		packet.var.avtonull = 5123456;
+		packet.var.k1 = 2;
+		packet.var.k2 = 1;
+	//	otv();
+		while (1)
+		{
+			ind++;
+			if (ind%0xf)
+				sel = temperatura;
+			else
+				sel =  cell;
+		
+		}
+		
+		 razborka();
+				Init_Device();
 		flag_int0 = 0;
 		flag_int1 = 0;
 		while (1);
@@ -895,7 +1279,7 @@ void main(void)
 	void  ADC_convert(void) interrupt 10
 
 	{
-	 	ADC_calculate();
+	 	ADC_calculate(temperatura);
    	
    		AD0INT =0;	 		// если флаг установлен то преобразование закончено
 					 		// его нужно сбросить программно

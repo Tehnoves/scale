@@ -9,6 +9,8 @@
 //  09.01.15 KN
 //  10.01.16 kalibr
 //  15.01.16 SPI
+//  22.01.15 тара и реальный вес
+//  21.01.15 тестирование 
 //           
 //
 //
@@ -54,6 +56,8 @@
 #define pervij		    0x00
 #define vtoroi		    0x01
 
+//#define otl
+
 // Peripheral specific initialization functions,
 // Called from the Init_Device() function
 
@@ -70,6 +74,7 @@ bit flag_sek,flag_sekunda,flag_k;
   bit cs_con = 1;
   bit cs_dat = 1;
   bit one,two,flag_int0=0,flag_int1=0;
+  bit flag_tara;
 
 
 char code baza[9][5]= {
@@ -147,16 +152,16 @@ bit one,two;
 	//unsigned long xdata *end_ADC_buf;
 
 	//unsigned long xdata ADC_srednee;
-	unsigned long xdata rrez1=0,rrez1_copy=0,rrez2=0,rrez2_copy=0;
+	//unsigned long xdata rrez1=0,rrez1_copy=0,rrez2=0,rrez2_copy=0; // ??????????
 
 
-	unsigned int xdata max_weight,cell_weight;
+	//unsigned int xdata max_weight,cell_weight;   // ?????????????
 	long xdata sred;
 	union zap
 		{   char ch[4];
 			long lo;
 		};
-	int xdata tara_var;
+	//int xdata tara_var;
  
  
 	 union  Crr
@@ -171,8 +176,8 @@ bit one,two;
 	   char Char[2];
 	   
 	 };
-	 union Crr xdata Crc_send,Crc1_send;
-	 unsigned char xdata tek_ves1[5],granica;
+	 //union Crr xdata Crc_send,Crc1_send;
+	 ///unsigned char xdata tek_ves1[5],granica;
 
 	 struct var 
 	 {
@@ -181,7 +186,7 @@ bit one,two;
 		 long diskr;
 	 };
 	 
-	 struct var perem;
+	 struct var perem;   //  ???????????
 	 
 	 union global2
 	 {
@@ -193,7 +198,7 @@ bit one,two;
 	 
 	struct cons
 		{ 
-		char cod;
+		
 		long npv;
 		int  nmpv;
 		char diskreta;
@@ -282,38 +287,95 @@ bit one,two;
 							};	
 							
 							
-			unsigned char xdata  TxPacket[packetlength];
+			unsigned char  xdata TxPacket[packetlength];
 			unsigned char  xdata RxPacket[packetlength];						
-			unsigned char xdata command,val;
-			unsigned char xdata A2,A3,i,a5,RxPacketLen;	
-			unsigned char xdata diagnoz[12];
+			unsigned char  xdata command,val;
+			unsigned char  xdata A2,A3,i,a5,RxPacketLen;	
+			unsigned char  xdata diagnoz[12];
 							
   
- struct cons var_cons;
+ struct cons var_cons;  //????????????????
+
+ 
+	struct cons2
+		{ 
+		char cod;		
+		struct cons var;
+		int vedushee;
+		long avtonol;
+		
+		}; 
+	struct cons2 var_cons2;	//?????????????????
+		
+    union global 
+	 { struct cons2 co1;
+	  char con[sizeof(var_cons2)];
+	 };
 
 
- union global 
-	{ struct cons co1;
-	  char con[sizeof(var_cons)];
-	};
-
-
- union global xdata AA;
+ union global xdata AA;  ////////??????????????????????
 
  FLADDR xdata addr; 
  unsigned char  idata ii,jj;
- unsigned char idata yt;
- //unsigned char code shift[8] =  {0x80,0x40,0x20,0x10,0x08,0x04,0x02,0x01};
+ unsigned char idata yt;    ///?????????????????????
+											//unsigned char code shift[8] =  {0x80,0x40,0x20,0x10,0x08,0x04,0x02,0x01};
  unsigned char code codtabl[18]={~0xf6,~0x30,~0xe5,~0xf1,~0x33,~0xd3,~0xd7,~0x70,
-                                ~0xf7,~0xf3,~0x02,~0x40,~0x20,~0x10,~0x80,~0x04,
-                                ~0x01,~0x08 };
+                                 ~0xf7,~0xf3,~0x02,~0x40,~0x20,~0x10,~0x80,~0x04,
+                                 ~0x01,~0x08 };
 
- unsigned char  pdata  regen[5];// = {'1','2','3','4','5'};
+ unsigned char  pdata  regen[5];			// = {'1','2','3','4','5'};
  
  void init_flash(void);
  void copi_kalibr_ves(void);
-unsigned char read_spi_con(unsigned char A1);	
+ unsigned char read_spi_con(unsigned char A1);	
+//*************************************************
+//
+//   Перечень команда
+//
+//	1 калибровка
+//	6 ноль
+//  7 полный вес  
+//  2  спать
+//  3  подъем 
+//  4  измерения
+//  5  условный ноль
+//  8 команда выполнена
+//
+//************************************************								
+//
+//
+// это пакет принятый от головы
+//   команда, вес, температура, напряжение, ведущее число, уровень нуля,k1, k2
+//								
+ char xdata bu[] ="3,1234567.23,12.34,1234,1234567,1,1";
+ 
+//***************************************************** 
+// 
+//  пакет калибровки
+//
+//  команда,ведущее число, уровень нуля, k1, k2
+   //char xdata bu[] ="1, 1234, 1234567, 1, 1";	
+ char xdata tm[10];
+ int  xdata vesi,ves_digit,vesi1,ves_indik,ves_tara;  // ????????????//
 	
+	
+struct pac 
+	 {
+		 char comm;
+		 long ves;
+		 char temp;
+		 float v;
+		 int vedushee;
+		 long avtonull;
+		 char k1;
+		 char k2;
+	 };
+	 
+union pack
+	{
+  struct pac var;
+  unsigned char Byte[sizeof(struct pac)];
+	} xdata packet;	 	
 
 void Timer_Init()
 {
@@ -369,7 +431,7 @@ void Port_IO_Init()
     P0MDOUT   = 0xFD;
     P1MDOUT   = 0xFF;
     P2MDOUT   = 0xFF;
-    P3MDOUT   = 0x1F;
+    P3MDOUT   = 0x01;
     P0SKIP    = 0xC0;
     XBR0      = 0x02;
     XBR1      = 0xC0;
@@ -422,7 +484,7 @@ void Port_IO_Init()
 	//	  запись FLASH
 	//
 	//********************************
-
+/*
 	void init_write(void)
 		{  
 		char I;
@@ -441,7 +503,7 @@ void Port_IO_Init()
 		for (I=0;I<sizeof(BB);I++)
 				FLASH_ByteWrite ((FLADDR)addr+I+sizeof(AA),BB.yy[I]);	
 		}	
-	
+	*/
 	
 	//**********************
 	//
@@ -449,7 +511,7 @@ void Port_IO_Init()
 	//
 	//**********************
 	
-	
+	/*
 	void init_read(void)
 		{
 		char i;
@@ -468,7 +530,7 @@ void Port_IO_Init()
 		if (AA.co1.cod !=  0x55)
 			init_flash();	
 		}
-	
+	*/
 	//*****************************
 	//
 	//  Прописываем Flash первый
@@ -477,7 +539,7 @@ void Port_IO_Init()
 	//*****************************
 		
 		
-		
+	/*	
 	void init_flash(void)
 	{
 			AA.co1.cod  = 0x55;	
@@ -491,7 +553,7 @@ void Port_IO_Init()
 			init_write();
 			init_read();
 	}
-	
+	*/
 	//**********************
 	//
 	//	 хождение по дискрету
@@ -499,7 +561,7 @@ void Port_IO_Init()
 	//**********************
 	
 	
-	unsigned int zn(unsigned int izm)
+	 int zn(unsigned int izm)
 		{
 		unsigned char tmp;
 			tmp = izm % diskret;
@@ -536,6 +598,7 @@ void Port_IO_Init()
 			null_4 = 1;
 			null_3 = 1;
 			null_2 = 1;
+			/*
 			for (i=0;i<8;i++)
 					{
 						start(j+i);
@@ -548,14 +611,29 @@ void Port_IO_Init()
 							break;
 						}
 					}
-					
+			*/	
+			
 			if (!flag_k)
 				{
-					regen[0] ='1';
-					regen[1] ='2';
-					regen[2] ='3';
-					regen[3] ='4';
-					regen[4] ='5';
+					sprintf(regen,"%0.5u",vesi); 
+					null_5 = 1;
+					null_4 = 1;
+					null_3 = 1;
+					null_2 = 1;
+					null_5 = (regen[0] != '0');
+					if (!null_5)
+						null_4 = (regen[1] != '0');
+					if (!null_4)
+						null_3 = (regen[2] != '0');
+					if (!null_3)
+						null_2 = (regen[3] != '0');
+					
+					
+										//regen[0] ='1';
+										//regen[1] ='2';
+										//regen[2] ='3';
+										//regen[3] ='4';
+										//regen[4] ='5';
 				}
 			
 			
@@ -598,7 +676,7 @@ void Port_IO_Init()
 		xvost[i] =baza[BB.variable.k1][i];
 		a = (BB.variable.k2+1)/10;
 		
-		a = a*atoi(xvost);
+		/////////////////////////////////////a = a*atoi(xvost);
 		sprintf(regen,"%0.5u",(int)a); 
 		null_5 = 1;
 			null_4 = 1;
@@ -715,13 +793,13 @@ void Port_IO_Init()
 	_nop_();
 	msek =0 ;
 	 TR2 = 0;
-		addr=0x1c00;  
+		///////////////////addr=0x1c00;  
 												//	init_write();
 		//addr=0x1c00;  
 		//BB.variable.k1 =0;
 		//BB.variable.k2 =0;
 		//BB.variable.diskr =0;
-		init_read();	
+		//init_read();	
 		//AA.co1.npv =0;
 		//AA.co1.nmpv =0;
 		//AA.co1.diskreta =0;
@@ -734,13 +812,15 @@ void Port_IO_Init()
 		selekt = 1;
 		
 		flag_k =0;
+		ves_tara = 0;
+		flag_tara = 0;
 		}	
 		
 		
 		
 	void tes(char k1,char sel)
 		{
-			right_new = right;
+			right_new = right;                        // БОЛЬШЕ
 			if (right_old != right_new) 
 				{
 					if (!right_new)
@@ -760,7 +840,7 @@ void Port_IO_Init()
 						}
 						right_old = right_new;
 				}
-			left_new = left;
+			left_new = left;							//  МЕНЬШЕ
 			if (left_old != left_new) 
 				{
 					if (!left_new)
@@ -788,29 +868,29 @@ void Port_IO_Init()
 		
 		switch (k2)
 						{
-							case 0:
-								init_read();
+							case 0:                   // выбираем грузопдъемность весов
+								//init_read();
 								index = BB.variable.k1;
 								k1 =  7;
 								copi(index);
 								break;
-							case 1:
+							case 1:                   // каким % будем грузить
 							    BB.variable.k1= index;
-								init_write();
-								init_read();
+								//init_write();
+						//		init_read();
 								index = BB.variable.k2;
 								k1 =9;
 								copi_dis(index);
 								selekt = 2;
 								break;
-							case 2:
+							case 2:						 // ждем нулевой вес
 								 BB.variable.k2= index;
-								init_write();
-								init_read();
+								//init_write();
+								//init_read();
 								copi_null();
 								
 								break;
-							case 3:
+							case 3:                     // калибровка нулевого веса
 								null_5 = 0;
 								null_4 = 0;
 								null_3 = 0;
@@ -818,12 +898,12 @@ void Port_IO_Init()
 								flag_sekunda = 1;
 								TR2 = 1;
 								break;
-							case 4:
+							case 4:                   // выводим вес калибровки
 								sek = 0;
 								msek = 0;
 								copi_kalibr_ves();
 								break;
-							case 5:
+							case 5:                 // калебруем нагруженную платформу
 							// запомнить ведущее число
 								TR2 = 1;
 								null_5 = 0;
@@ -832,7 +912,7 @@ void Port_IO_Init()
 								null_2 = 0;
 								flag_sekunda = 1;
 								break;
-							case 6:
+							case 6:                   // конец калибровки
 								flag_k = 0;
 								// это конец калибровки
 								break;
@@ -840,7 +920,23 @@ void Port_IO_Init()
 	}
 	
 
-	
+	void tara_proc(void)
+	{
+			tara_new = tara;
+			if (tara_old != tara_new) 
+				{
+					if (!tara_new)
+						{
+							k2++;         //7
+							if (k2%2 == 0)
+								ves_tara = vesi;
+							else 
+								ves_tara = 0;
+						}
+						tara_old = tara_new;
+						
+					}	
+	}
 			
 	void kalib(void)
 	{
@@ -864,17 +960,51 @@ void Port_IO_Init()
 				
 			
 	}
-	
+	void null_tm(void)
+	{
+		char i;
+		for(i=0;i<10;i++)
+			tm[i] = 0;	
+	}
+	void copy(char n, char k)
+	{
+		char i;
+		null_tm();
+		for(i=n;i<k+1;i++)
+			tm[i-n] = bu[i];
+	}
+	void razborka(void)
+		{
+			/*
+													///tm[0] = sizeof(packet);
+			copy (0,0);
+			packet.var.comm = atoi(tm);
+			copy(2,8);
+			packet.var.ves = atol(tm);
+			copy(10,11);
+			packet.var.temp = atoi(tm);
+			copy(13,17);
+			packet.var.v = atof(tm);
+			copy(19,22);
+			packet.var.vedushee = atoi(tm);
+			copy(24,31);
+			packet.var.avtonull = atol(tm);*/
+		}
 	
 void main(void)
 	{
 		PCA0MD &= ~0x40;
+		packet.var.ves=3572404;
+		ves_digit=2796;
+		vesi1 = (int)(packet.var.ves/ves_digit);
+		vesi = zn(vesi1);
+	   // razborka();
 		_nop_();
 		init_param();
-		val = read_spi_con(0x01);
+	//	val = read_spi_con(0x01);
 		
-		//addr = 0x1c00;
-		//FLASH_PageErase (addr);
+												//addr = 0x1c00;
+												//FLASH_PageErase (addr);
 		test();
 		if (flag_k)
 			{
@@ -897,7 +1027,29 @@ void main(void)
 			regen[3] ='4';
 			regen[4] ='5';
 			}
-			while (1);
+			k2 = 1;
+			null_5 = 1;
+			null_4 = 1;
+			null_3 = 1;
+			null_2 = 1;
+			while (1)
+			{
+				tara_proc();
+				ves_indik = vesi-ves_tara;
+					
+				sprintf(regen,"%0.5u",ves_indik); 
+				
+				null_5 = (regen[0] != '0');
+				if (!null_5)
+					null_4 = (regen[1] != '0');
+				if ((!null_4)&(!null_5))
+					null_3 = (regen[2] != '0');
+				else null_3 = 1;
+				if ((!null_3)&(!null_4)&(!null_5))
+					null_2 = (regen[3] != '0');
+				else	
+					null_2 =1;
+			}	
 			
 	}
 	
@@ -1088,7 +1240,7 @@ unsigned char ReadFIFO(void)
 								//PHY_IRQ1_En = tmp0RFIE;
 			return (A3);
 		}
-		
+#ifdef otl			
 	void di_(void)
 	{		unsigned char  dat,  a;
 			unsigned char i = 0;
@@ -1101,7 +1253,9 @@ unsigned char ReadFIFO(void)
 						a++;
 					}
 					SetRFMode_my(RF_RECEIVER);
-	}	
+	}
+#endif		
+#ifdef otl	
 	void dia(void)
 				{
 					unsigned char a;
@@ -1119,6 +1273,7 @@ unsigned char ReadFIFO(void)
 					a=0;
 											//	di_();
 				}	
+#endif				
 	void init_TX(void)
 			{	unsigned char i;
 			for(i = 0;i <32;i++)
@@ -1143,7 +1298,9 @@ unsigned char ReadFIFO(void)
 		write_spi_con(0x0D, (InitConfigRegsPer[0x0D] | IRQ1_FIFO_OVERRUN_CLEAR ));
 		write_spi_con(0x0E, ((InitConfigRegsPer[0x0E]) | 0x02));
 		write_spi_con(0x16, 0x97);	//на передачу
+#ifdef otl		
 		dia();
+#endif		
 		//WriteFIFO(TxPacketLen+1);
 		WriteFIFO(16);	//Node_adrs
 		WriteFIFO(0x23);
@@ -1171,7 +1328,9 @@ unsigned char ReadFIFO(void)
 	//	INTCONbits.GIE = 0;    //?
 		//до этого момента на ноге прерывания 0
 		SetRFMode_my(RF_TRANSMITTER);
+#ifdef otl					
 		dia();
+#endif						
 		for(i=0;i<255;i++)
 		{
 	_nop_();_nop_();_nop_();_nop_();
@@ -1195,8 +1354,9 @@ unsigned char ReadFIFO(void)
 		}
 
 	//	INTCONbits.GIE = 1;   //?
+#ifdef otl			
 		dia();
-		
+#endif		
 		
 		write_spi_con(0x16, 0x68);
 		SetRFMode_my(RF_RECEIVER);	//rfmode = ресивер
@@ -1217,11 +1377,15 @@ unsigned char ReceiveFrame_my(void)
 		//	write_spi_con(0x16, 0x97);		   // 0x97
 			SetRFMode_my(RF_RECEIVER);
 			init_RX();
+	#ifdef otl		
 			dia();
+	#endif			
 			//////////////////////////
 			
 			while(!(flag_int1));
+		#ifdef otl			
 			dia();
+		#endif		
 				SetRFMode_my(RF_STANDBY);
 			RxPacketLen = 16;  // ReadFIFO();	
 			flag_int0 = 0;
