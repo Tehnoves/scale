@@ -11,7 +11,7 @@
 //  15.01.16 SPI
 //  22.01.15 тара и реальный вес
 //  21.01.15 тестирование 
-//           
+//  23.01.15 ушел от текстовых переменных - появмлась память         
 //
 //
 //
@@ -57,6 +57,7 @@
 #define vtoroi		    0x01
 
 //#define otl
+//#define flash
 
 // Peripheral specific initialization functions,
 // Called from the Init_Device() function
@@ -64,11 +65,13 @@
 
 #define diskret 4
 
+unsigned int xdata regen1;
+
 bit left_old,left_new,leftchench;
 bit right_old,right_new,rightchench;
 bit tara_old,tara_new,tarachench;
 bit null_old,null_new,nullchench;
-bit flag_sek,flag_sekunda,flag_k;
+bit flag_sek,flag_sekunda,flag_k,rab;
 
 
   bit cs_con = 1;
@@ -77,35 +80,35 @@ bit flag_sek,flag_sekunda,flag_k;
   bit flag_tara;
 
 
-char code baza[9][5]= {
-		{'0','2','0','0','0'},
-		{'0','3','0','0','0'},
-		{'0','5','0','0','0'},
-		{'1','0','0','0','0'},
-		{'1','5','0','0','0'},
-		{'2','0','0','0','0'},
-		{'3','0','0','0','0'},
-		{'5','0','0','0','0'},
-		{'0','0','0','0','0'}
+unsigned int code baza[9]= {
+		{ 2000},
+		{ 3000},
+		{ 5000},
+		{10000},
+		{15000},
+		{20000},
+		{30000},
+		{50000},
+		{00000}
 	};
-char code dis[10][5]={
-	    {'0','0','0','1','0'},
-		{'0','0','0','2','0'},
-		{'0','0','0','3','0'},
-		{'0','0','0','4','0'},
-		{'0','0','0','5','0'},
-		{'0','0','0','6','0'},
-		{'0','0','0','7','0'},
-		{'0','0','0','8','0'},
-		{'0','0','0','9','0'},
-		{'0','0','1','0','0'}
+unsigned char code dis[10]={
+	    { 10},
+		{ 20},
+		{ 30},
+		{ 40},
+		{ 50},
+		{ 60},
+		{ 70},
+		{ 80},
+		{ 90},
+		{ 100}
 	};
 	
 unsigned int xdata pr,tmp3;
 unsigned char xdata tmp2,half,k2,selekt,k1;
-char xdata index;
+char xdata index,cod_test;
 char xdata msek,sek;
-char xdata xvost[5];
+///////////////char xdata xvost[5];
 
 sbit P13 = P1^3;
 sbit P14 = P1^4;
@@ -196,26 +199,8 @@ bit one,two;
 	 
 	 union global2 xdata BB;
 	 
-	struct cons
-		{ 
-		
-		long npv;
-		int  nmpv;
-		char diskreta;
-		char half_diskret;
-	 
-		}; 
-   
-   struct cons code vesy[8]= {
-		{2000,10,1,0},
-		{3000,20,1,0},
-		{5000,40,2.1},
-		{10000,10,5,2},
-		{15000,100,5,2},
-		{20000,200,10,5},
-		{30000,200,10,5},
-		{50000,400,20,10}
-   };
+	
+ 
 		const char code InitConfigRegsPer[] = {
 		/* 0 */				CHIPMODE_STBYMODE | FREQBAND_915 | VCO_TRIM_00,   //0b00110000
 		/* 1 */				MODSEL_OOK | DATAMODE_PACKET | IFGAIN_0 | DATAMODE_BUFFERED | OOKTHRESHTYPE_PEAK,          //0b01101100 
@@ -293,7 +278,15 @@ bit one,two;
 			unsigned char  xdata A2,A3,i,a5,RxPacketLen;	
 			unsigned char  xdata diagnoz[12];
 							
-  
+  struct cons
+		{ 
+		
+		long npv;
+		int  nmpv;
+		char diskreta;
+		char half_diskret;
+	 
+		}; 
  struct cons var_cons;  //????????????????
 
  
@@ -305,15 +298,30 @@ bit one,two;
 		long avtonol;
 		
 		}; 
-	struct cons2 var_cons2;	//?????????????????
+//	struct cons2 var_cons2;	//?????????????????
 		
     union global 
 	 { struct cons2 co1;
-	  char con[sizeof(var_cons2)];
+	  char con[sizeof(struct cons2)];  ///var_cons2
 	 };
 
 
  union global xdata AA;  ////////??????????????????????
+	 
+	 
+  
+   struct cons code vesy[8]= {
+		{2000,10,1,0},
+		{3000,20,1,0},
+		{5000,40,2.1},
+		{10000,10,5,2},
+		{15000,100,5,2},
+		{20000,200,10,5},
+		{30000,200,10,5},
+		{50000,400,20,10}
+   };	 
+	 
+	 
 
  FLADDR xdata addr; 
  unsigned char  idata ii,jj;
@@ -365,17 +373,17 @@ struct pac
 		 long ves;
 		 char temp;
 		 float v;
-		 int vedushee;
-		 long avtonull;
-		 char k1;
-		 char k2;
+		 //int vedushee;
+		 //long avtonull;
+		 //char k1;
+		 //char k2;
 	 };
 	 
 union pack
 	{
   struct pac var;
   unsigned char Byte[sizeof(struct pac)];
-	} xdata packet;	 	
+	} xdata packet,packet2;	 	
 
 void Timer_Init()
 {
@@ -484,18 +492,11 @@ void Port_IO_Init()
 	//	  запись FLASH
 	//
 	//********************************
-/*
+
 	void init_write(void)
 		{  
 		char I;
 		
-															//	AA.co1.npv =20000;
-															//	AA.co1.nmpv =100;
-															//	AA.co1.diskreta =10;
-																
-																//BB.variable.k1 =2;
-																//BB.variable.k2 =5;
-																//BB.variable.diskr =12345;
 		FLASH_PageErase((FLADDR) addr);
 		for (I=0;I<sizeof(AA);I++)
 				FLASH_ByteWrite ((FLADDR)addr+I,AA.con[I]);
@@ -503,7 +504,7 @@ void Port_IO_Init()
 		for (I=0;I<sizeof(BB);I++)
 				FLASH_ByteWrite ((FLADDR)addr+I+sizeof(AA),BB.yy[I]);	
 		}	
-	*/
+	
 	
 	//**********************
 	//
@@ -511,7 +512,7 @@ void Port_IO_Init()
 	//
 	//**********************
 	
-	/*
+	
 	void init_read(void)
 		{
 		char i;
@@ -519,18 +520,15 @@ void Port_IO_Init()
 			
 		for (i=0;i<sizeof(AA);i++)
    				AA.con[i]=FLASH_ByteRead ((FLADDR)addr+i);
-			
-			
+				
 		for (i=0;i<sizeof(BB);i++)
 			{
-			
-				
-   				BB.yy[i]=FLASH_ByteRead ((FLADDR)addr+i+sizeof(AA));	
+				BB.yy[i]=FLASH_ByteRead ((FLADDR)addr+i+sizeof(AA));	
 			}
 		if (AA.co1.cod !=  0x55)
 			init_flash();	
 		}
-	*/
+	
 	//*****************************
 	//
 	//  Прописываем Flash первый
@@ -539,21 +537,28 @@ void Port_IO_Init()
 	//*****************************
 		
 		
-	/*	
+
 	void init_flash(void)
 	{
 			AA.co1.cod  = 0x55;	
-			AA.co1.npv  = 20000;
-			AA.co1.nmpv = 100;
-			AA.co1.diskreta = 10;
+			AA.co1.var.npv  = 20000;
+			AA.co1.var.nmpv = 100;
+			AA.co1.var.diskreta = 10;
+			AA.co1.var.half_diskret = 5;
+			AA.co1.vedushee  = 1234;	
+			AA.co1.avtonol  = 0;	
 		
 			BB.variable.k1 = 0;
 			BB.variable.k2 = 0;
 			BB.variable.diskr = 12345;
 			init_write();
 			init_read();
+		
+		
+		
+		
 	}
-	*/
+	
 	//**********************
 	//
 	//	 хождение по дискрету
@@ -573,9 +578,9 @@ void Port_IO_Init()
 		
 	void start(char bukva)
 		{
-		unsigned char i;
-		for (i= 0;i<5;i++)
-			regen[i] =  bukva; 
+	//	unsigned char i;
+		//for (i= 0;i<5;i++)
+			regen1 =  bukva; 
 		}
 		
 	void delay(int cnt)  {
@@ -593,40 +598,45 @@ void Port_IO_Init()
 	
 	void test(void)
 		{
-			char i,j=0x3a;
+		//	char i;
 			null_5 = 1;
 			null_4 = 1;
 			null_3 = 1;
 			null_2 = 1;
-			/*
+			rab = 0;
 			for (i=0;i<8;i++)
 					{
-						start(j+i);
+						cod_test = i+10;
+						//start(i);
 						delay(40);
 						if (!tara)
-						{
+					  {
 							tara_old = 0;
 							tara_new = 0;
 							flag_k=1;
 							break;
 						}
 					}
-			*/	
+			rab = 1;	
 			
 			if (!flag_k)
 				{
-					sprintf(regen,"%0.5u",vesi); 
+				///////////	sprintf(regen,"%0.5u",vesi);   ?????????????
 					null_5 = 1;
 					null_4 = 1;
 					null_3 = 1;
 					null_2 = 1;
-					null_5 = (regen[0] != '0');
+					null_5 = ((regen1 % 100000/10000) != 0);
+					//null_5 = (regen[0] != 0');
 					if (!null_5)
-						null_4 = (regen[1] != '0');
+						null_4 = ((regen1  % 10000 / 1000) != 0);
+						//null_4 = (regen[1] != '0');
 					if (!null_4)
-						null_3 = (regen[2] != '0');
+						null_3 = ((regen1 % 1000/ 100 ) != 0);
+						//null_3 = (regen[2] != '0');
 					if (!null_3)
-						null_2 = (regen[3] != '0');
+							null_2 = ((regen1 %100 /10) != 0);
+						//null_2 = (regen[3] != '0');
 					
 					
 										//regen[0] ='1';
@@ -648,14 +658,14 @@ void Port_IO_Init()
 	
 	void copi_null(void)
 	{
-		char i;
+	//	char i;
 			null_5 = 1;
 			null_4 = 1;
 			null_3 = 1;
 			null_2 = 1;
-			for(i=0;i<5;i++)
+			//for(i=0;i<5;i++)
 			{
-				regen[i] =baza[8][i];
+				regen1 =baza[8];
 					
 			}
 	
@@ -671,20 +681,17 @@ void Port_IO_Init()
 	void copi_kalibr_ves(void)
 	{
 		float a;
-		char i;
-		for(i=0;i<5;i++)
-		xvost[i] =baza[BB.variable.k1][i];
+	
 		a = (BB.variable.k2+1)/10;
-		
-		/////////////////////////////////////a = a*atoi(xvost);
-		sprintf(regen,"%0.5u",(int)a); 
+		regen1 = a*baza[BB.variable.k1];  
 		null_5 = 1;
-			null_4 = 1;
-			null_3 = 1;
-			null_2 = 1;
-			null_5 = (regen[0] != '0');
+		null_4 = 1;
+		null_3 = 1;
+		null_2 = 1;
+		null_5 = ((regen1 % 100000/10000) != 0);
 		if (!null_5)
-			null_4 = (regen[1] != '0');
+			null_4 = ((regen1  % 10000 / 1000) != 0);
+			
 	}
 	
 	//*****************************
@@ -695,18 +702,13 @@ void Port_IO_Init()
 	
 	void copi(char nu)
 	{
-		char i;
+		
 			null_5 = 1;
 			null_4 = 1;
 			null_3 = 1;
 			null_2 = 1;
-			for(i=0;i<5;i++)
-			{
-				regen[i] =baza[nu][i];
-					if (i==0)
-						null_5 = (regen[i] != '0');
-			}
-	
+			regen1 =baza[nu];
+			null_5 = ((regen1 % 100000/10000) != 0);
 	}
 	
 	//*****************************
@@ -717,36 +719,26 @@ void Port_IO_Init()
 	
 	void copi_dis(char nu)
 	{
-		char i;
 			null_5 = 0;
 			null_4 = 0;
 			null_3 = 1;
 			null_2 = 1;
-			//null_1 = 1;
-			for(i=0;i<5;i++)
-			{
-				regen[i] =dis[nu][i];
-					if (i==2)
-						null_3 = (regen[i] != '0');
-			}
-	
+			regen1 =dis[nu];
+			null_3 = ((regen1 % 1000/ 100 ) != 0);
+
 	}
 	
 	void sekunda(void)
 	{
-			//null_5 = 0;
-			//null_4 = 0;
-			//null_3 = 0;
-			//null_2 = 0;
-			
-			{
-				if (flag_sek)
+		if (flag_sek)
 					{
 						flag_sek = 0;
-						sprintf(regen,"%0.5u",(int)sek); 
-						null_2 = (regen[3] != '0');
+						regen1  = sek;
+					
+							null_2 = ((regen1 %100 /10) != 0);
+					
 					}		
-			}
+			
 	}
 	
 	
@@ -760,18 +752,12 @@ void Port_IO_Init()
 	
 	void init_param(void)
 		{
-			one=0;
-			two=0;
-			null_4 = 1;
+		one=0;
+		two=0;
+		null_4 = 1;
 		null_3 = 1;
 		null_2  = 1;
-													//copi(3);
 		index =0;
-													//regen[0] ='1';
-													//regen[1] ='2';
-													//regen[2] ='3';
-													//regen[3] ='4';
-													//regen[4] ='5';
 		P2= 0xff;		P13 = 1;
 		P14 = 0;
 		P15 = 0;
@@ -782,7 +768,7 @@ void Port_IO_Init()
 		sek= 0;
 		flag_sekunda = 0;	
 		Init_Device();
-		 TR2 = 1;           // Timer0 enabled
+		 TR2 = 1;           // Timer2 enabled
 	// reset
 	reset = 1;
 	while (!one);
@@ -793,16 +779,14 @@ void Port_IO_Init()
 	_nop_();
 	msek =0 ;
 	 TR2 = 0;
-		///////////////////addr=0x1c00;  
-												//	init_write();
-		//addr=0x1c00;  
-		//BB.variable.k1 =0;
-		//BB.variable.k2 =0;
-		//BB.variable.diskr =0;
-		//init_read();	
-		//AA.co1.npv =0;
-		//AA.co1.nmpv =0;
-		//AA.co1.diskreta =0;
+	
+		addr=0x1c00;  
+#ifdef flash		
+		init_flash();	
+		init_write();
+#endif		
+		init_read();	
+	
 		left_old=1;left_new=1;leftchench=0;
 		right_old=1;right_new=1;rightchench=0;
 		tara_old=1;tara_new=1;tarachench=0;
@@ -994,10 +978,28 @@ void Port_IO_Init()
 void main(void)
 	{
 		PCA0MD &= ~0x40;
-		packet.var.ves=3572404;
+														//	ves_digit=12345;
+														//	ii = ves_digit %10;   // 1 разряд 5
+														//	ii = ves_digit %100/10;  // 2 разряд 4
+														//	ii = ves_digit %1000/100;  // 3 разряд 3
+														//	ii = ves_digit %10000/1000;  // 4 разряд 2
+														//	ii = ves_digit %100000/10000;  // 5 разряд 1
+														
+		packet.var.ves = 5123456;
+	/*	
+			packet.var.temp = -13;
+			packet.var.v = 12.34;
+			packet.var.comm= 3;
+														
+														
+		for (ii =0; ii < sizeof(packet);ii++)
+		    packet2.Byte[ii] = packet.Byte[ii];
+	*/	
+		
 		ves_digit=2796;
 		vesi1 = (int)(packet.var.ves/ves_digit);
 		vesi = zn(vesi1);
+		//regen1 = zn(vesi1);
 	   // razborka();
 		_nop_();
 		init_param();
@@ -1006,6 +1008,7 @@ void main(void)
 												//addr = 0x1c00;
 												//FLASH_PageErase (addr);
 		test();
+		
 		if (flag_k)
 			{
 			copi(index);
@@ -1021,32 +1024,37 @@ void main(void)
 			null_3 = 1;
 			null_2 = 1;
 			
-			regen[0] ='1';
-			regen[1] ='2';
-			regen[2] ='3';
-			regen[3] ='4';
-			regen[4] ='5';
+		//	regen[0] ='1';
+		//	regen[1] ='2';
+		//	regen[2] ='3';
+		//	regen[3] ='4';
+		//	regen[4] ='5';
 			}
 			k2 = 1;
 			null_5 = 1;
 			null_4 = 1;
 			null_3 = 1;
 			null_2 = 1;
+			//regen1 = 12345;
+			
 			while (1)
 			{
 				tara_proc();
-				ves_indik = vesi-ves_tara;
+				//ves_indik = vesi-ves_tara;
+				regen1 = vesi-ves_tara;
 					
-				sprintf(regen,"%0.5u",ves_indik); 
+				//sprintf(regen,"%0.5u",ves_indik); 
 				
-				null_5 = (regen[0] != '0');
+				null_5 = ((regen1 % 100000/10000) != 0);
 				if (!null_5)
-					null_4 = (regen[1] != '0');
+					null_4 = ((regen1  % 10000 / 1000) != 0);
+				else
+					null_4 = 1;
 				if ((!null_4)&(!null_5))
-					null_3 = (regen[2] != '0');
+					null_3 = ((regen1 % 1000/ 100 ) != 0);
 				else null_3 = 1;
 				if ((!null_3)&(!null_4)&(!null_5))
-					null_2 = (regen[3] != '0');
+					null_2 = ((regen1 %100 /10) != 0);
 				else	
 					null_2 =1;
 			}	
@@ -1070,7 +1078,10 @@ void main(void)
 				P13 = 0;
 				P14 = 1;
 				if (null_4)
-					P2= codtabl[regen[1] - 0x30];
+					if (rab)
+						P2= codtabl[regen1  % 10000 / 1000];  //  4
+					else	
+						P2 = codtabl[cod_test];
 				else
 					P2 = 0xff;
 			 }
@@ -1079,7 +1090,10 @@ void main(void)
 				P14 = 0;
 				P15 = 1;
 				if (null_3)
-					P2= codtabl[regen[2] - 0x30];
+					if (rab)
+					P2= codtabl[regen1 % 1000/ 100 ];  // 3
+					else	
+						P2 = codtabl[cod_test];
 				else
 					P2 = 0xff;
 			}
@@ -1088,7 +1102,10 @@ void main(void)
 				P15 = 0;
 				P16 = 1;
 				if (null_2)
-					P2= codtabl[regen[3] - 0x30];
+				if (rab)	
+				P2= codtabl[regen1 %100 /10];  // 2
+				else	
+						P2 = codtabl[cod_test];
 				else
 					P2 = 0xff;
 			}
@@ -1096,15 +1113,20 @@ void main(void)
 			{
 				P16 = 0;
 				P17 = 1;
-				P2= codtabl[regen[4] - 0x30];
-				
+				if (rab)
+				P2= codtabl[regen1 % 10];      // 1
+				else	
+						P2 = codtabl[cod_test];
 			}
 			else if (P17)
 			{
 				P17 = 0;
 				P13 = 1;
 				if (null_5)
-					P2= codtabl[regen[0] - 0x30];
+					if (rab)
+					P2= codtabl[regen1 % 100000/10000];   // 5
+					else	
+						P2 = codtabl[cod_test];
 				else	
 					P2 = 0xff;
 			}

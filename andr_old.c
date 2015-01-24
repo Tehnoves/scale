@@ -233,7 +233,7 @@ unsigned long cell_long;
 		 long diskr;
 	 };
 	 
-	 struct var perem;
+	// struct var perem;
 	 
 	 union global2
 	 {
@@ -253,7 +253,7 @@ struct cons
 	 
 		}; 
 
- struct cons var_cons;
+ //struct cons var_cons;
 
 
 	struct cons2
@@ -272,7 +272,7 @@ struct cons
 
 
 
- union global xdata AA;
+// union global xdata AA;
  
 struct pac 
 	 {
@@ -280,10 +280,10 @@ struct pac
 		 long ves;
 		 char temp;
 		 float v;
-		 int vedushee;
-		 long avtonull;
-		 char k1;
-		 char k2;
+		 //int vedushee;
+		 //long avtonull;
+		 //char k1;
+		 //char k2;
 	 };
 	 
 union pack
@@ -292,9 +292,9 @@ union pack
   unsigned char Byte[sizeof(struct pac)];
 	} xdata packet;	 
 	 
-	void init_flash(void);
-	void init_write(void);
-	void init_read(void);
+//	void init_flash(void);
+//	void init_write(void);
+//	void init_read(void);
 
  void Timer_Init()
 {
@@ -532,7 +532,7 @@ void Init_Device(void)
 	//	  запись FLASH
 	//
 	//********************************
-
+/*
 	void init_write(void)
 		{  
 		char I;
@@ -552,14 +552,14 @@ void Init_Device(void)
 				FLASH_ByteWrite ((FLADDR)addr+I+sizeof(AA),BB.yy[I]);	
 		}	
 
-	
+	*/
 	//**********************
 	//
 	//	 чтение FLASH
 	//
 	//**********************
 	
-	
+	/*
 	void init_read(void)
 		{
 		char i;
@@ -577,7 +577,7 @@ void Init_Device(void)
 			}
 		if (AA.co1.cod !=  0x55)
 			init_flash();	
-		}
+		}*/
 	
 	//*****************************
 	//
@@ -587,7 +587,7 @@ void Init_Device(void)
 	//*****************************
 		
 		
-
+/*
 	void init_flash(void)
 	{
 			AA.co1.cod  = 0x55;	
@@ -603,7 +603,7 @@ void Init_Device(void)
 			BB.variable.diskr = 12345;
 			init_write();
 			init_read();
-	}
+	}*/
 
 //******************************
 //
