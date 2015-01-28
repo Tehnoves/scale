@@ -72,6 +72,8 @@ bit right_old,right_new,rightchench;
 bit tara_old,tara_new,tarachench;
 bit null_old,null_new,nullchench;
 bit flag_sek,flag_sekunda,flag_k,rab;
+bit flag_peredacha;
+
 
 
   bit cs_con = 1;
@@ -391,6 +393,7 @@ void Timer_Init()
 	TMOD      = 0x02;
     CKCON     = 0x01;
     TMR2CN    = 0x04;
+	TMR3CN    = 0x04;
 	TR2 = 0; 
 	
 	
@@ -454,6 +457,7 @@ void Port_IO_Init()
 
 	void Interrupts_Init()
 	{
+		 EIE1      = 0x80;	
 		IT01CF    = 0xFE;
 							
 		//IT01CF    = 0x76;
@@ -752,6 +756,7 @@ void Port_IO_Init()
 	
 	void init_param(void)
 		{
+		flag_peredacha = 0;
 		one=0;
 		two=0;
 		null_4 = 1;
@@ -1003,6 +1008,7 @@ void main(void)
 	   // razborka();
 		_nop_();
 		init_param();
+		while (1);
 	//	val = read_spi_con(0x01);
 		
 												//addr = 0x1c00;
@@ -1024,11 +1030,11 @@ void main(void)
 			null_3 = 1;
 			null_2 = 1;
 			
-		//	regen[0] ='1';
-		//	regen[1] ='2';
-		//	regen[2] ='3';
-		//	regen[3] ='4';
-		//	regen[4] ='5';
+												//	regen[0] ='1';
+												//	regen[1] ='2';
+												//	regen[2] ='3';
+												//	regen[3] ='4';
+												//	regen[4] ='5';
 			}
 			k2 = 1;
 			null_5 = 1;
@@ -1164,6 +1170,19 @@ void main(void)
 			TR2 = 0;
 			}
 		_nop_();
+	}
+	
+	//*****************************
+	//
+	//  Секундная метка
+	//
+	//*****************************
+		
+		
+	void Timer3_int (void) interrupt INTERRUPT_TIMER3
+	{
+		TMR3CN &= ~0x80; 
+		flag_peredacha = 1;
 	}
 	
 	void write_spi_con(unsigned char A1, unsigned char value)

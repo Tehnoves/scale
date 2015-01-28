@@ -156,7 +156,7 @@
   bit cs_con = 1;
   bit cs_dat = 1;
   bit one,two,flag_int0=0,flag_int1=0;
-  bit flag_ocifrovka;
+  bit flag_ocifrovka,flag_ocifrovka_temper;
   bit ADC_buf_overflov;
   bit ADC_buf_empty=1; 
 							
@@ -194,6 +194,7 @@ unsigned long cell_long;
 	unsigned char ind,flag_xvost,flag_zanyato2,flag_zanyato1;
 	char sel;
 	
+void ADC_calculate(void);
 //*************************************************
 //
 //   ѕеречень команда
@@ -217,7 +218,7 @@ unsigned long cell_long;
 //   команда, вес, температура, напр€жение, ведущее число, уровень нул€
 //								
 	
-	char xdata bu[] ="3,1234567.23,12.34,1234,1234567,1,1";
+	//char xdata bu[] ="3,1234567.23,12.34,1234,1234567,1,1";
 	
 //***************************************************** 
 // 
@@ -225,7 +226,7 @@ unsigned long cell_long;
 //
 //  команда,ведущее число, уровень нул€, k1, k2
   //char xdata bu[] ="1, 1234, 1234567, 1, 1";	
-	char xdata tm[10];
+	//char xdata tm[10];
  struct var 
 	 {
 		 char k1;
@@ -238,7 +239,7 @@ unsigned long cell_long;
 	 union global2
 	 {
 		 struct var variable;
-		 char yy[sizeof(perem)];
+		 char yy[sizeof(struct var)];
 	 };
 	 
 	 union global2 xdata BB;	
@@ -280,27 +281,23 @@ struct pac
 		 long ves;
 		 char temp;
 		 float v;
-		 //int vedushee;
-		 //long avtonull;
-		 //char k1;
-		 //char k2;
+		
 	 };
 	 
 union pack
 	{
   struct pac var;
   unsigned char Byte[sizeof(struct pac)];
-	} xdata packet;	 
+	} xdata packet,packet2;	 
 	 
-//	void init_flash(void);
-//	void init_write(void);
-//	void init_read(void);
 
  void Timer_Init()
 {
     TMOD      = 0x20;
-    CKCON     = 0x01;
+    CKCON     = 0x41;
     TH1       = 0x60;
+	TMR3CN    = 0x04;
+//	TR3 = 1;
 }
 
 void UART_Init()
@@ -327,7 +324,7 @@ void ADC_Init()
 	
 							//ADC0CN    = 0x10;
 	//ADC0CN  |=  (1<<AD0PL);	// бипол€рный
-						  ADC0CN  &= ~(1<<AD0PL);	// однопол€рном
+	 ADC0CN  &= ~(1<<AD0PL);	// однопол€рном
 							//	GPIO |= (1<<dclk);
 							
 							//  GPIO &= ~(1<< dclk);
@@ -358,8 +355,8 @@ void ADC_Init()
 							//010: ≈диничное преобразование. 
 						
 						
-    ADC0MUX   = 0x78;    	// датчик температуры
-							//  ADC0MUX   = 0xFF;    // тензодатчик 
+    ADC0MUX   = 0x78;    	   // тензодатчик 
+	//  ADC0MUX   = 0xFF;     // датчик температуры
 		
 		
 		
@@ -435,8 +432,8 @@ void Interrupts_Init()
 							   // IT01CF    = 0xfe;
 							   // IE        = 0xE5;
 								
-	
-	EIE1      = 0x08;
+	EIE1      = 0x88;  // timer 3
+						//EIE1      = 0x08;
     IT01CF    = 0x07;
     IE        = 0xC5;
 	
@@ -452,7 +449,7 @@ void Interrupts_Init()
  void Timer2_Init (void)
 	{
 		  
-		CKCON     = 0x10;
+		CKCON     |= 0x10;
 		TMR2CN    = 0x04;
 
 	   	
@@ -505,15 +502,8 @@ void Init_Device(void)
 	one = 0;
 	two = 0;
 	msek = 0;
-	addr=0x1c00;  
-												//init_write();
-		addr=0x1c00;  
-		//BB.variable.k1 =0;
-		//BB.variable.k2 =0;
-		init_read();	
-		//AA.co1.npv =0;
-		//AA.co1.nmpv =0;
-		//AA.co1.diskreta =0;
+	
+		
 	/*
 	 TR2 = 1;           // Timer0 enabled
 	// reset
@@ -527,83 +517,6 @@ void Init_Device(void)
 	 TR2 = 0;*/
 	init_all();
 	}
-//********************************
-	//
-	//	  запись FLASH
-	//
-	//********************************
-/*
-	void init_write(void)
-		{  
-		char I;
-		
-															//	AA.co1.npv =20000;
-															//	AA.co1.nmpv =100;
-															//	AA.co1.diskreta =10;
-																
-																//BB.variable.k1 =2;
-																//BB.variable.k2 =5;
-																//BB.variable.diskr =12345;
-		FLASH_PageErase((FLADDR) addr);
-		for (I=0;I<sizeof(AA);I++)
-				FLASH_ByteWrite ((FLADDR)addr+I,AA.con[I]);
-																//addr += 8;
-		for (I=0;I<sizeof(BB);I++)
-				FLASH_ByteWrite ((FLADDR)addr+I+sizeof(AA),BB.yy[I]);	
-		}	
-
-	*/
-	//**********************
-	//
-	//	 чтение FLASH
-	//
-	//**********************
-	
-	/*
-	void init_read(void)
-		{
-		char i;
-		//	int y;
-			
-		for (i=0;i<sizeof(AA);i++)
-   				AA.con[i]=FLASH_ByteRead ((FLADDR)addr+i);
-			
-			
-		for (i=0;i<sizeof(BB);i++)
-			{
-			
-				
-   				BB.yy[i]=FLASH_ByteRead ((FLADDR)addr+i+sizeof(AA));	
-			}
-		if (AA.co1.cod !=  0x55)
-			init_flash();	
-		}*/
-	
-	//*****************************
-	//
-	//  ѕрописываем Flash первый
-	//  раз
-	//
-	//*****************************
-		
-		
-/*
-	void init_flash(void)
-	{
-			AA.co1.cod  = 0x55;	
-			AA.co1.var.npv  = 20000;
-			AA.co1.var.nmpv = 100;
-			AA.co1.var.diskreta = 10;
-			AA.co1.var.half_diskret = 5;
-			AA.co1.vedushee  = 1234;	
-			AA.co1.avtonol  = 0;	
-		
-			BB.variable.k1 = 0;
-			BB.variable.k2 = 0;
-			BB.variable.diskr = 12345;
-			init_write();
-			init_read();
-	}*/
 
 //******************************
 //
@@ -613,21 +526,41 @@ void Init_Device(void)
 
 
 
-void ADC_calculate(char sel)
+void ADC_calculate(void)
 
 	{ 
-	ind++;
-	if (ind%0x1f)
-		sel = temperatura;
-	else
-		sel =  cell;
-		
+			
+	
 		//float tr;
 		// static unsigned long sred;
    	ADC.Byte[1]=ADC0H;
    	ADC.Byte[2]=ADC0M;
    	ADC.Byte[3]=ADC0L;
 
+		if (!(ind%0xf))
+			{ //sel = temperatura;
+			 if (flag_ocifrovka_temper == pervij)
+										//if (sel== temperatura)
+											{ temper = ((float)(ADC.Long)*2450/0x7fffff-54.300)/.205 ;}
+										//else
+										//	{ cell_long = ADC_srednee/16;}
+									//else
+									//	if (sel== temperatura)
+											{ temper2 = ((float)(ADC.Long)*2450/0x7fffff-54.300)/.205 ;
+											}
+										//else
+										//	{cell_long2 = ADC_srednee/16;}
+										
+									 flag_ocifrovka_temper = ~flag_ocifrovka_temper;
+			}
+			else
+			{ //sel =  cell;
+			  
+			
+	
+	
+	
+	
    	if(ADC_buf_empty)						// флаг пустого буфера
        {									// Time_request = 0;
 						 start_ADC_buf 		= ADC_buf;		// начало буфера
@@ -648,18 +581,17 @@ void ADC_calculate(char sel)
 								
 									
 									if (flag_ocifrovka == pervij)
-										if (sel== temperatura)
-											{ temper = ((float)(ADC_srednee/16)*2450/0x7fffff-54.300)/.205 ;}
-										else
+										//if (sel== temperatura)
+										//	{ temper = ((float)(ADC_srednee/16)*2450/0x7fffff-54.300)/.205 ;}
+										//else
 											{ cell_long = ADC_srednee/16;}
 									else
-										if (sel== temperatura)
-											{   //tr = (ADC_srednee/16.0)*2450/0x7fffff;
-												//tr -= 54.3;
-												temper2 = ((float)(ADC_srednee/16)*2450/0x7fffff-54.300)/.205 ;
-											}
-										else
+										//if (sel== temperatura)
+										//	{ temper2 = ((float)(ADC_srednee/16)*2450/0x7fffff-54.300)/.205 ;
+										//	}
+										//else
 											{cell_long2 = ADC_srednee/16;}
+										
 									 flag_ocifrovka = ~flag_ocifrovka;
 								  
 								   //  окончание оцифровки
@@ -685,7 +617,18 @@ void ADC_calculate(char sel)
 						}
 					 end_ADC_buf[0]=ADC.Long;   // 
        }
-    	
+	   }
+    	ind++;
+			if (!(ind%0xf))
+			{ sel = temperatura;
+			  ADC0CN  |=  (1<<AD0PL);	// бипол€рный
+			  ADC0MUX   = 0xff;    	// датчик температуры
+			}
+			else
+			{ sel =  cell;
+			  ADC0MUX   = 0x78; // тензодатчик 
+			  ADC0CN  &= ~(1<<AD0PL);
+			}
 	}
 	
 
@@ -982,35 +925,23 @@ unsigned char ReceiveFrame_my(void)
 			
 			return node_adrs;
 		}
-	void null_tm(void)
-	{
-		char i;
-		for(i=0;i<10;i++)
-			tm[i] = 0;	
-	}
-	void copy(char n, char k)
-	{
-		char i;
-		null_tm();
-		for(i=n;i<k+1;i++)
-			tm[i-n] = bu[i];
-	}
+	
+
 		void razborka(void)
 		{
-			/*
-													///tm[0] = sizeof(packet);
-			copy (0,0);
-			packet.var.comm = atoi(tm);
-			copy(2,8);
-			packet.var.ves = atol(tm);
-			copy(10,11);
-			packet.var.temp = atoi(tm);
-			copy(13,17);
-			packet.var.v = atof(tm);
-			copy(19,22);
-			packet.var.vedushee = atoi(tm);
-			copy(24,31);
-			packet.var.avtonull = atol(tm);*/
+			
+			/*	
+			char ii;
+			packet.var.temp = -13;
+			packet.var.v = 12.34;
+			packet.var.comm= 3;
+														
+														
+		for (ii =0; ii < sizeof(packet);ii++)
+		    packet2.Byte[ii] = packet.Byte[ii];
+	*/	
+			
+		
 		}
 
 		/*
@@ -1050,99 +981,60 @@ union pack
 	//
 	//*****************************************************************************
 	//   команда, вес, температура, напр€жение, ведущее число, уровень нул€
-    //   "3,1234567.23,12.34,1234,1234567,1,1";
+    //   "3,1234567.23,12.34";
 
 #ifdef otl														
 														
  void otv(void)
 		{
-		int ij;
-/*	
-		strcpy(buf1,"3,");
-		sprintf(temp3,"%8.8lu,",cell_long);   // вес
-			strcat(buf1,temp3);
-		//sprintf(temp3,"%+2.2u,",(int)temper);   // вес
-		//strcat(buf1,temp3);
-		//sprintf(temp3,"%+2.2d,",(int)temper);   // температура
-		strcat(buf1,temp3);
-		//////////////sprintf(temp3,"%2.2f,",packet.var.v);
-		strcat(buf1,temp3);
-		//sprintf(temp3,"%+4.4u,",(int)temper);   // вес
-		//strcat(buf1,temp3);
-		sprintf(temp3,"%6.6u,",packet.var.vedushee);   // ведущее число
-	strcat(buf1,temp3);
-		//sprintf(temp3,"%8.8lu,",packet.var.avtonull);   // автоноль
-		strcat(buf1,temp3);
-		sprintf(temp3,"%1.1u,",packet.var.k1);   // ведущее число
-		strcat(buf1,temp3);
-		sprintf(temp3,"%1.1u,",packet.var.k2);   // ведущее число
-		strcat(buf1,temp3);
-	  */
-
-		
-//	PIE1bits.TXIE=0x00;
-		if (flag_xvost)															//
-		  	{	// 2
-				//if (!flag_peredacha)
-					{flag_zanyato1 = 1;
-					//strcpy(buf,buf1);      //1
+			char ii;
+				EA = 0;
+				if (flag_ocifrovka == pervij)
+					{
+						
+						packet.var.ves=cell_long2;
+					}
+				else
+					{
+						
+						packet.var.ves=cell_long;
+					}
+				if (flag_ocifrovka_temper == pervij)
+					{
+						packet.var.temp=temper2;
+						
+					}
+				else
+					{
+						packet.var.temp = temper;
+						
+					}	
+				EA = 1;
+			packet.var.comm = 3;	
+			packet.var.v = 0.0;
+			for (ii =0; ii < sizeof(packet);ii++)
+		        TxPacket[ii] = packet.Byte[ii];   // ??????
+					
+			//TxPacket[i]
 			
-					flag_zanyato1 = 0;}
-				//else
-					//{flag_zanyato2 = 1;
-					//strcpy(buf2,buf1);		//2
-					//flag_zanyato2 =  0;}
-			}
-		  else
-		  	{	// 1
-			//	if (flag_peredacha)
-					{flag_zanyato2 = 1;
-					//strcpy(buf2,buf1);   // 2
-					flag_zanyato2 = 0;
-				//	flag_xvost = ~flag_xvost;
-}
-				//else
-				//	{flag_zanyato1 = 1;
-				//	strcpy(buf,buf1);   // 1
-				//	flag_zanyato1 = 0;}
-			}								//ij=strlen(buf1);
-				flag_xvost = ~flag_xvost;	
-	//	PIE1bits.TXIE=0x01;	
-				
 		}
 #endif		
 		
 void main(void)
 	{
 		PCA0MD &= ~0x40; 
-		cell_long = 15234321;
-		temper = 22.34;
-		packet.var.v = 12.34;
-		packet.var.vedushee = 765432;
-		packet.var.avtonull = 5123456;
-		packet.var.k1 = 2;
-		packet.var.k2 = 1;
-	//	otv();
-		while (1)
-		{
-			ind++;
-			if (ind%0xf)
-				sel = temperatura;
-			else
-				sel =  cell;
-		
-		}
-		
-		 razborka();
-				Init_Device();
+		Init_Device();
 		flag_int0 = 0;
 		flag_int1 = 0;
-		while (1);
+			while (1)
+				otv();
+	
 
 		IE0 = 0;
 		IE1 = 0;
-	val = read_spi_con(0x01);
+	    val = read_spi_con(0x01);
 		while (1)
+		
 			{
 				i =0;
 												//	val = read_spi_con(0);
@@ -1150,45 +1042,14 @@ void main(void)
 												//	val = read_spi_con(2);
 				while (i < 0x20)
 					{
-				
-					//	for (i = 0 ; i <= 31; i++)
-							{
-
-							}	//регистры выставлены
+					//регистры выставлены
 								write_spi_con(i,InitConfigRegsPri[i]);
-												//__delay_ms(2);
-												//	 write_spi_con(0x10,i);
-													//	 write_spi_con(a,b);
-
-												//	LATAbits.LATA1 = 0;
-												//	LATAbits.LATA1 = 1;
 								val = read_spi_con(i); 
-												//	__delay_ms(2);
 								a5 = InitConfigRegsPri[i];
-												//	val = read_spi_con(1); 
 								i++;
-							}
+					}
 						i = 0;
-									  // while (i < 0x20)
-										//  {
-												
-								//for (i = 0 ; i <= 31; i++)
-
-
-								//регистры выставлены
-										//	write_spi_con(i,InitConfigRegs[i]);
-																				//__delay_ms(2);
-																				//	 write_spi_con(0x10,i);
-																					//	 write_spi_con(a,b);
-
-																				//	LATAbits.LATA1 = 0;
-																				//	LATAbits.LATA1 = 1;
-											//	val = read_spi_con(i); 
-																				//	__delay_ms(2);
-											//	a5 = InitConfigRegsPer[i];
-																				//	val = read_spi_con(1); 
-											//	i++;
-									//}
+								
 						dia();
 						
 						val = read_spi_con(0x0e);
@@ -1263,7 +1124,7 @@ void main(void)
 			//  IE0 = 0;                        // Clear the SPIF flag
 			  flag_int0 = 1;
 		}
-		void irq1_int(void) interrupt 2
+	void irq1_int(void) interrupt 2
 	 	{
 
 
@@ -1278,12 +1139,18 @@ void main(void)
 
 	void  ADC_convert(void) interrupt 10
 
-	{
-	 	ADC_calculate(temperatura);
-   	
-   		AD0INT =0;	 		// если флаг установлен то преобразование закончено
-					 		// его нужно сбросить программно
-		ADC0MD=0x82;		// пока не пришел запрос продолжаем оцифровку			 
-					 
-					 	
-	}
+		{
+			ADC_calculate();
+		
+			AD0INT =0;	 		// если флаг установлен то преобразование закончено
+								// его нужно сбросить программно
+			ADC0MD=0x82;		// пока не пришел запрос продолжаем оцифровку			 
+						 
+							
+		}
+	
+	void Timer3_int (void) interrupt INTERRUPT_TIMER3
+		{
+			TMR3CN &= ~0x80; 
+			//flag_peredacha = 1;
+		}
