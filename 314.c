@@ -56,6 +56,23 @@
 #define pervij		    0x00
 #define vtoroi		    0x01
 
+#define Len_ADC_Buf 16   //16  
+#define ON              0x01
+#define OFF             0x00 
+#define pervij		    0x00
+#define vtoroi		    0x01
+#define AD0ISEL		    0x04
+#define AD0VREF		    0x02
+#define AD0PL		    0x04
+#define AD0BPHE		    0x07
+#define AD0BPLE		    0x06
+#define temperatura     0x01
+#define cell            0x02
+#define otl
+
+
+
+
 //#define otl
 //#define flash
 
@@ -338,6 +355,11 @@ bit one,two;
  void init_flash(void);
  void copi_kalibr_ves(void);
  unsigned char read_spi_con(unsigned char A1);	
+ 	void write_spi_con(unsigned char A1, unsigned char value);
+	void dia(void);
+	void SetRFMode_my( char mode);
+	void Send_Packet_my(void);
+	unsigned char ReceiveFrame_my(void);
 //*************************************************
 //
 //   Перечень команда
@@ -380,6 +402,8 @@ struct pac
 		 //char k1;
 		 //char k2;
 	 };
+	
+	 
 	 
 union pack
 	{
@@ -409,7 +433,8 @@ void SPI_Init()
 	IT1 = 1;*/
 	
 	
-	
+	IT0 = 1;
+	IT1 = 1;
     SPI0CFG   = 0x40;
     SPI0CN    = 0x01;
     SPI0CKR   = 0x1D;
@@ -443,7 +468,7 @@ void Port_IO_Init()
     P1MDOUT   = 0xFF;
     P2MDOUT   = 0xFF;
     P3MDOUT   = 0x01;
-    P0SKIP    = 0xC0;
+  //  P0SKIP    = 0xC0;
     XBR0      = 0x02;
     XBR1      = 0xC0;
 	
@@ -454,14 +479,17 @@ void Port_IO_Init()
 	{
 		OSCICN    = 0x83;
 	}
+  //EIE1      = 0x80;
+  //  IT01CF    = 0xFE;
+   // IE        = 0xE7;
 
 	void Interrupts_Init()
 	{
 		 EIE1      = 0x80;	
-		IT01CF    = 0xFE;
+		IT01CF    = 0xfe;
 							
 		//IT01CF    = 0x76;
-		IE        = 0xE2;
+		IE        = 0xE2;   //E7  E2
 
 	}
 	void start_timer0(void)
@@ -984,19 +1012,35 @@ void main(void)
 	{
 		PCA0MD &= ~0x40;
 														//	ves_digit=12345;
-														//	ii = ves_digit %10;   // 1 разряд 5
+														//	ii =  , es_digit %10;   // 1 разряд 5
 														//	ii = ves_digit %100/10;  // 2 разряд 4
 														//	ii = ves_digit %1000/100;  // 3 разряд 3
 														//	ii = ves_digit %10000/1000;  // 4 разряд 2
 														//	ii = ves_digit %100000/10000;  // 5 разряд 1
 														
 		packet.var.ves = 5123456;
-	/*	
+	
 			packet.var.temp = -13;
 			packet.var.v = 12.34;
 			packet.var.comm= 3;
-														
-														
+	for (ii =0;ii< (packetlength); ii++)
+	{
+		 RxPacket[ii] = 0;
+	}		
+				
+	RxPacket[0]	= 0x16;	 
+	RxPacket[1]	= 0x23;	 
+	for (ii =2;ii< (sizeof(struct pac)+2); ii++)
+	{
+		 RxPacket[ii] = packet.Byte[ii-2];
+	}
+	
+			 
+	for (ii =2;ii< (sizeof(struct pac)+2); ii++)
+	{
+		packet2.Byte[ii-2] = RxPacket[ii];
+	}												
+	/*														
 		for (ii =0; ii < sizeof(packet);ii++)
 		    packet2.Byte[ii] = packet.Byte[ii];
 	*/	
@@ -1008,9 +1052,52 @@ void main(void)
 	   // razborka();
 		_nop_();
 		init_param();
-		while (1);
-	//	val = read_spi_con(0x01);
+		//while (1);
+		val = read_spi_con(0x01);
+		//	while (1)
 		
+			{
+				i =0;
+												//	val = read_spi_con(0);
+												//	__delay_ms(2);
+												//	val = read_spi_con(2);
+				while (i < 0x20)
+					{
+					//регистры выставлены
+								write_spi_con(i,InitConfigRegsPer[i]);
+								val = read_spi_con(i); 
+								a5 = InitConfigRegsPer[i];
+								i++;
+					}
+					
+
+						i = 0;
+								
+						dia();
+						
+						val = read_spi_con(0x0e);
+						write_spi_con(0x0e,(val | 0x02));
+						val = read_spi_con(0x0e);
+						val = read_spi_con(0x00);
+						write_spi_con(0x00,((val & 0x1F) | RF_SYNTHESIZER));
+						val = read_spi_con(0x00);
+						do
+							{
+								val = read_spi_con(0x0e);
+
+							}
+						while (!(val & 0x02));
+						dia();
+						
+						//SetRFMode_my(RF_RECEIVER);
+						
+						while (1)
+						{	
+							Send_Packet_my();
+							//ReceiveFrame_my();
+						i++;
+						}
+			}
 												//addr = 0x1c00;
 												//FLASH_PageErase (addr);
 		test();
@@ -1045,6 +1132,11 @@ void main(void)
 			
 			while (1)
 			{
+			
+				ReceiveFrame_my();
+				vesi1 = (int)(packet.var.ves/ves_digit);
+				vesi = zn(vesi1);
+				regen1 = zn(vesi1);
 				tara_proc();
 				//ves_indik = vesi-ves_tara;
 				regen1 = vesi-ves_tara;
@@ -1351,7 +1443,7 @@ unsigned char ReadFIFO(void)
 		{
 		WriteFIFO(TxPacket[i]);
 		}
-
+/*
 		a1 =read_spi_con(0x1f); 
 		write_spi_con(0x1F,0x40);
 		a2 =read_spi_con(0x1f); 
@@ -1364,13 +1456,15 @@ unsigned char ReadFIFO(void)
 					}
 		write_spi_con(0x1F,a1);
 
-
+*/
 
 	//	INTCONbits.GIE = 0;    //?
 		//до этого момента на ноге прерывания 0
 		SetRFMode_my(RF_TRANSMITTER);
+		EX0 = 1;
+		EX1 = 1;
 #ifdef otl					
-		dia();
+//		dia();
 #endif						
 		for(i=0;i<255;i++)
 		{
@@ -1378,7 +1472,7 @@ unsigned char ReadFIFO(void)
 	_nop_();_nop_();_nop_();_nop_();
 		}
 
-	while(!(flag_int0));
+	while(!(flag_int1));
 		flag_int0 = 0;
 	//здесь должно на ноге irq1 появиться лог 1
 	//     IT01CF    = 0xFE;
@@ -1406,7 +1500,7 @@ unsigned char ReadFIFO(void)
 		write_spi_con(REG_IRQPARAM0, (i | 0x01));
 
 	}	
-unsigned char ReceiveFrame_my(void)
+unsigned char ReceiveFrame_my(void)///////////////////////////////////////////////////////////
 		{
 			unsigned char  dat, node_adrs;
 			unsigned char i = 0;
@@ -1416,23 +1510,27 @@ unsigned char ReceiveFrame_my(void)
 			write_spi_con(0x0D, (InitConfigRegsPri[0x0D] | IRQ1_FIFO_OVERRUN_CLEAR ));
 			write_spi_con(0x0E, ((InitConfigRegsPri[0x0E]) | 0x02));
 		//	write_spi_con(0x16, 0x97);		   // 0x97
+		//EX0 = 1;
+		//EX1 = 1;
 			SetRFMode_my(RF_RECEIVER);
+			EX0 = 1;
+		EX1 = 1;
 			init_RX();
 	#ifdef otl		
-			dia();
+		//	dia();
 	#endif			
 			//////////////////////////
 			
-			while(!(flag_int1));
+			_nop_();//while(!(flag_int1));
 		#ifdef otl			
-			dia();
+		//	dia();
 		#endif		
 				SetRFMode_my(RF_STANDBY);
 			RxPacketLen = 16;  // ReadFIFO();	
 			flag_int0 = 0;
 			node_adrs = ReadFIFO();
 			RxPacketLen = (RxPacketLen-1);
-			
+	
 
 			while(RxPacketLen--)
 			{
@@ -1456,14 +1554,14 @@ unsigned char ReceiveFrame_my(void)
 	 	{
 
 
-			//  IE0 = 0;                        // Clear the SPIF flag
+			  IE0 = 0;                        // Clear the SPIF flag
 			  flag_int0 = 1;
 		}
 		void irq1_int(void) interrupt 2
 	 	{
 
 
-			//  IE1 = 0;                        // Clear the SPIF flag
+			  IE1 = 0;                        // Clear the SPIF flag
 			  flag_int1 = 1;
 		}
 

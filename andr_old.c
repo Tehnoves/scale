@@ -145,20 +145,31 @@
 								//SBIT (AD0VREF, ADC0CF, 2);   
 								//sbit AD0VREF = ADC0CF^4;  
 								//SBIT (AD0ISEL, ADC0CF, 4);     
-  sbit A00 = P0^0; 
+ /* sbit A00 = P0^0; 
   sbit  A01 = P0^1; 
   sbit IRQ0 = P0^6;    
   sbit IRQ1 = P0^7;  
   sbit reset = P1^0;
   sbit CSCON= P1^2;
-  sbit CSDAT = P1^3;
+  sbit CSDAT = P1^3;*/
+  
+  
+   sbit A00 = P0^0; 
+  sbit  A01 = P0^1; 
+  sbit IRQ0 = P0^6;    	// 0.7
+  sbit IRQ1 = P0^7;  	// 0.6
+  sbit reset = P1^0;	// 1.0
+  sbit CSCON= P1^3;		// ***********   P1,2
+  sbit CSDAT = P1^2;	// ***********   P1.3
+ 
+  
  
   bit cs_con = 1;
   bit cs_dat = 1;
   bit one,two,flag_int0=0,flag_int1=0;
   bit flag_ocifrovka,flag_ocifrovka_temper;
   bit ADC_buf_overflov;
-  bit ADC_buf_empty=1; 
+  bit ADC_buf_empty=1,flag_adc; 
 							
   FLADDR xdata addr; 
   
@@ -169,7 +180,8 @@
  unsigned char  	buf[40];			// это передача
  unsigned char 	buf2[40];
  unsigned char 	buf1[40];
- unsigned char 	temp3[40];
+ unsigned char 	temp3[40],jta;
+ float ves,ves2;
 	
 	
 union
@@ -186,8 +198,8 @@ union
 	unsigned long xdata ADC_buf[Len_ADC_Buf];
 	unsigned long xdata *start_ADC_buf;
 	unsigned long xdata *end_ADC_buf;
-unsigned long cell_long;
-	unsigned long xdata ADC_srednee,cell_long2;
+ long cell_long,cell_long2;
+	unsigned long xdata ADC_srednee;
 	unsigned long xdata rrez1=0,rrez1_c;
 	unsigned long xdata rrez1_copy=0,rrez2=0,rrez2_copy=0;
 	float xdata temper,temper2;
@@ -299,17 +311,17 @@ union pack
 	TMR3CN    = 0x04;
 //	TR3 = 1;
 }
-
+/*
 void UART_Init()
 {
     SCON0     = 0x10;
 }
-
+*/
 	void SPI_Init() 
 	{
 		SPI0CFG   = 0x40;
 		SPI0CN    = 0x01;
-		SPI0CKR   = 0x97;		   //  	 0x1D
+		SPI0CKR   = 0x79;		   //  	 0x1D
 		IT0 = 1;
 		IT1 = 1;
 	}
@@ -319,7 +331,7 @@ void ADC_Init()
   
 //вариант измерения температуры	
 
-   
+  //   REF0CN    = 0x03;
  
 	
 							//ADC0CN    = 0x10;
@@ -339,7 +351,8 @@ void ADC_Init()
 
 							
 	ADC0CF  &= ~ (1<<AD0ISEL);   // ФильтрSINC3.  внутреннееVREF
-	ADC0CF  &= ~ (1<<AD0VREF);
+	//ADC0CF  |= (1<<AD0VREF);
+	ADC0CF &=  ~(1<<AD0VREF);
 	
 							/////////ADC0CF    = 0x0;      //0x10;   // быстрый фильтр
 							// AD0ISEL=0;   // ФильтрSINC3.
@@ -355,14 +368,14 @@ void ADC_Init()
 							//010: Единичное преобразование. 
 						
 						
-    ADC0MUX   = 0x78;    	   // тензодатчик 
-	//  ADC0MUX   = 0xFF;     // датчик температуры
+   // ADC0MUX   = 0x58;    	   // тензодатчик 
+	  ADC0MUX   = 0x58;     // датчик темпера    0xF8
 		
 		
 		
 		
 		
-	ADC0BUF   = 0x40;
+	//ADC0BUF   = 0x40;
 							// AD0BPHE		    0x07
 							// AD0BPLE		    0x06
 											// Биты5-4:AD0BPS: Настройка буферов для положительного канала. 
@@ -375,8 +388,8 @@ void ADC_Init()
 	
 	//    370 ~ 50Hz 
 	ADC0CLK   = 0x09;
-	ADC0DECH  = 0x01;
-    ADC0DECL  = 0x13;
+	ADC0DECH  = 0x07;
+    ADC0DECL  = 0x7f;
 	
 	
 }
@@ -403,17 +416,17 @@ void Port_IO_Init()
     // P1.5  -  Unassigned,  Push-Pull,  Digital
     // P1.6  -  Unassigned,  Push-Pull,  Digital
     // P1.7  -  Unassigned,  Open-Drain, Digital
-
+/*
     P0MDOUT   = 0xFD;
     P1MDOUT   = 0x7F;
     XBR0      = 0x02;
     XBR1      = 0xC0;
-
-          //     P0MDOUT   = 0xFB;
-    //P1MDOUT   = 0x0D;
-    //P0SKIP    = 0x01;
-    //XBR0      = 0x02;
-    //XBR1      = 0xC0;
+*/
+              P0MDOUT   = 0xFB;
+    P1MDOUT   = 0x0D;
+    P0SKIP    = 0x01;
+    XBR0      = 0x02;
+    XBR1      = 0xC0;
     
 
 
@@ -435,7 +448,7 @@ void Interrupts_Init()
 	EIE1      = 0x88;  // timer 3
 						//EIE1      = 0x08;
     IT01CF    = 0x07;
-    IE        = 0xC5;
+    IE        = 0xe5;
 	
 	
 	
@@ -504,7 +517,7 @@ void Init_Device(void)
 	msek = 0;
 	
 		
-	/*
+	
 	 TR2 = 1;           // Timer0 enabled
 	// reset
 	reset = 1;
@@ -514,7 +527,7 @@ void Init_Device(void)
 	while (!two);
 	//  5 mcek 0
 	_nop_();
-	 TR2 = 0;*/
+	 TR2 = 0;
 	init_all();
 	}
 
@@ -530,105 +543,15 @@ void ADC_calculate(void)
 
 	{ 
 			
-	
+	jta=0;
 		//float tr;
 		// static unsigned long sred;
    	ADC.Byte[1]=ADC0H;
    	ADC.Byte[2]=ADC0M;
    	ADC.Byte[3]=ADC0L;
-
-		if (!(ind%0xf))
-			{ //sel = temperatura;
-			 if (flag_ocifrovka_temper == pervij)
-										//if (sel== temperatura)
-											{ temper = ((float)(ADC.Long)*2450/0x7fffff-54.300)/.205 ;}
-										//else
-										//	{ cell_long = ADC_srednee/16;}
-									//else
-									//	if (sel== temperatura)
-											{ temper2 = ((float)(ADC.Long)*2450/0x7fffff-54.300)/.205 ;
-											}
-										//else
-										//	{cell_long2 = ADC_srednee/16;}
-										
-									 flag_ocifrovka_temper = ~flag_ocifrovka_temper;
-			}
-			else
-			{ //sel =  cell;
-			  
-			
-	
-	
-	
-	
-   	if(ADC_buf_empty)						// флаг пустого буфера
-       {									// Time_request = 0;
-						 start_ADC_buf 		= ADC_buf;		// начало буфера
-						 end_ADC_buf 		= ADC_buf;		// конец буфера
-						 end_ADC_buf[0]		= ADC.Long;
-						 ADC_buf_empty		= OFF;
-						 ADC_buf_overflov	= OFF;			// начальная инициализация
-						 ADC_srednee		= 0;
-       }
-    else
-       {
-					 if(ADC_buf_overflov)
-							{
-								   ADC_srednee -= start_ADC_buf[0];	         // зачем ?
-								   ADC_srednee += ADC.Long;	    // текущее значение АЦП
-																// sred = ADC_srednee;
-																//  sred/=Len_ADC_Buf;		  // 16 значений в буфере
-								
-									
-									if (flag_ocifrovka == pervij)
-										//if (sel== temperatura)
-										//	{ temper = ((float)(ADC_srednee/16)*2450/0x7fffff-54.300)/.205 ;}
-										//else
-											{ cell_long = ADC_srednee/16;}
-									else
-										//if (sel== temperatura)
-										//	{ temper2 = ((float)(ADC_srednee/16)*2450/0x7fffff-54.300)/.205 ;
-										//	}
-										//else
-											{cell_long2 = ADC_srednee/16;}
-										
-									 flag_ocifrovka = ~flag_ocifrovka;
-								  
-								   //  окончание оцифровки
+	flag_adc = 1;
 
 
-
-							}
-					else 
-							ADC_srednee += ADC.Long;
-					if(start_ADC_buf<=end_ADC_buf)
-						{
-							   if(++end_ADC_buf == &ADC_buf[Len_ADC_Buf]) 
-									{end_ADC_buf=ADC_buf;
-									start_ADC_buf++;
-									ADC_buf_overflov=ON;}  
-						}
-					 else
-						{ 
-								   ++end_ADC_buf;
-								   ++start_ADC_buf;
-								   if(start_ADC_buf >= &ADC_buf[Len_ADC_Buf]) 
-											start_ADC_buf=ADC_buf;
-						}
-					 end_ADC_buf[0]=ADC.Long;   // 
-       }
-	   }
-    	ind++;
-			if (!(ind%0xf))
-			{ sel = temperatura;
-			  ADC0CN  |=  (1<<AD0PL);	// биполярный
-			  ADC0MUX   = 0xff;    	// датчик температуры
-			}
-			else
-			{ sel =  cell;
-			  ADC0MUX   = 0x78; // тензодатчик 
-			  ADC0CN  &= ~(1<<AD0PL);
-			}
 	}
 	
 
@@ -793,6 +716,7 @@ void di_(void)
 		write_spi_con(0x16, 0x97);	//на передачу
 		dia();
 		//WriteFIFO(TxPacketLen+1);
+		SetRFMode_my(RF_STANDBY);
 		WriteFIFO(16);	//Node_adrs
 		WriteFIFO(0x23);
 		init_RX();
@@ -800,11 +724,17 @@ void di_(void)
 		for(i=0; i< packetlength; i++)
 		{
 		WriteFIFO(TxPacket[i]);
+			_nop_();
+			_nop_();
+			_nop_();
+			_nop_();
+			_nop_();
 		}
 
 		a1 =read_spi_con(0x1f); 
 		write_spi_con(0x1F,0x40);
 		a2 =read_spi_con(0x1f); 
+			SetRFMode_my(RF_STANDBY);
 		a= 0;
 			while (a<32)
 					{
@@ -988,6 +918,115 @@ union pack
  void otv(void)
 		{
 			char ii;
+			if (flag_adc)
+			{
+					if (!(ind%0xf))
+			{ //sel = temperatura;
+			 if (flag_ocifrovka_temper == pervij)
+										//if (sel== temperatura)
+											{ temper = ((float)(ADC.Long)*2450/0x7fffff-54.300)/.205 ;}
+										//else
+										//	{ cell_long = ADC_srednee/16;}
+									else
+									//	if (sel== temperatura)
+											{ temper2 = ((float)(ADC.Long)*2450/0x7fffff-54.300)/.205 ;
+											}
+										//else
+										//	{cell_long2 = ADC_srednee/16;}
+										
+									 flag_ocifrovka_temper = ~flag_ocifrovka_temper;
+			}
+			else  
+			{ //sel =  cell;
+			  
+			
+	
+	
+	
+	
+   	if(ADC_buf_empty)						// флаг пустого буфера
+       {									// Time_request = 0;
+						 start_ADC_buf 		= ADC_buf;		// начало буфера
+						 end_ADC_buf 		= ADC_buf;		// конец буфера
+						 end_ADC_buf[0]		= ADC.Long;
+						 ADC_buf_empty		= OFF;
+						 ADC_buf_overflov	= OFF;			// начальная инициализация
+						 ADC_srednee		= 0;
+       }
+    else
+       {
+					 if(ADC_buf_overflov)
+							{
+								   ADC_srednee -= start_ADC_buf[0];	         // зачем ?
+								   ADC_srednee += ADC.Long;	    // текущее значение АЦП
+																// sred = ADC_srednee;
+																//  sred/=Len_ADC_Buf;		  // 16 значений в буфере
+								
+									
+									if (flag_ocifrovka == pervij)
+										//if (sel== temperatura)
+										//	{ temper = ((float)(ADC_srednee/16)*2450/0x7fffff-54.300)/.205 ;}
+										//else
+											{ cell_long = ADC_srednee/16;
+										//ves =(cell_long-2481000);		
+										//ves =500*ves/29600;
+										ves =(cell_long-3528185);		
+										ves =ves/84;
+}
+									else
+										//if (sel== temperatura)
+										//	{ temper2 = ((float)(ADC_srednee/16)*2450/0x7fffff-54.300)/.205 ;
+										//	}
+										//else
+											{cell_long2 = ADC_srednee/16;
+										//ves2 =(cell_long2-2481000);		
+										//ves2 =500*ves2/29600;
+													ves2 =(cell_long2-3528185);		
+										ves2 =ves2/84;}
+										
+									 flag_ocifrovka = ~flag_ocifrovka;
+								  
+								   //  окончание оцифровки
+
+
+
+							}
+					else 
+							ADC_srednee += ADC.Long;
+					if(start_ADC_buf<=end_ADC_buf)
+						{
+							   if(++end_ADC_buf == &ADC_buf[Len_ADC_Buf]) 
+									{end_ADC_buf=ADC_buf;
+									start_ADC_buf++;
+									ADC_buf_overflov=ON;}  
+						}
+					 else
+						{ 
+								   ++end_ADC_buf;
+								   ++start_ADC_buf;
+								   if(start_ADC_buf >= &ADC_buf[Len_ADC_Buf]) 
+											start_ADC_buf=ADC_buf;
+						}
+					 end_ADC_buf[0]=ADC.Long;   // 
+       }
+	   }
+    	ind++;
+			if (!(ind%0xf))
+			{ sel = temperatura;
+			  ADC0CN  |=  (1<<AD0PL);//ADC0CN  |=  (1<<AD0PL);	// биполярный
+			  ADC0MUX   = 0xff;    	// датчик температуры  0xf8
+			}
+			else
+			{ sel =  cell;
+			  ADC0MUX   = 0x58; // тензодатчик 78 58  0x58
+				ADC0CN  &= ~(1<<AD0PL);	 	// биполярный		 ADC0CN  |=  (1<<AD0PL);			//ADC0CN  &= ~(1<<AD0PL);
+			}   
+			
+			ADC0MD=0x82;		// пока не пришел запрос продолжаем оцифровку	
+		//	PCON=1;
+			flag_adc = 0;
+			}
+			jta++;
 				EA = 0;
 				if (flag_ocifrovka == pervij)
 					{
@@ -1026,8 +1065,8 @@ void main(void)
 		Init_Device();
 		flag_int0 = 0;
 		flag_int1 = 0;
-			while (1)
-				otv();
+			//while (1)
+			//	otv();
 	
 
 		IE0 = 0;
@@ -1066,10 +1105,10 @@ void main(void)
 						while (!(val & 0x02));
 						dia();
 						
-						
+						SetRFMode_my(RF_RECEIVER);
 						while (1)
 						{	
-						//	Send_Packet_my();
+							//Send_Packet_my();
 							ReceiveFrame_my();
 						i++;
 						}
@@ -1144,7 +1183,7 @@ void main(void)
 		
 			AD0INT =0;	 		// если флаг установлен то преобразование закончено
 								// его нужно сбросить программно
-			ADC0MD=0x82;		// пока не пришел запрос продолжаем оцифровку			 
+			//ADC0MD=0x82;		// пока не пришел запрос продолжаем оцифровку			 
 						 
 							
 		}
