@@ -1,42 +1,43 @@
 
 /////////////////////////////////////
 //
-//  Проект весы для Андреевича     //
-//  процессор F314
+//  РџСЂРѕРµРєС‚ РІРµСЃС‹ РґР»СЏ РђРЅРґСЂРµРµРІРёС‡Р°     //
+//  РїСЂРѕС†РµСЃСЃРѕСЂ F314
 //
-//  03.01.15 старт
-//  04.01.15 флэш 
+//  03.01.15 СЃС‚Р°СЂС‚
+//  04.01.15 С„Р»СЌС€ 
 //  09.01.15 KN
 //  10.01.16 kalibr
 //  15.01.16 SPI
-//  22.01.15 тара и реальный вес
-//  21.01.15 тестирование 
-//  23.01.15 ушел от текстовых переменных - появмлась память         
+//  22.01.15 С‚Р°СЂР° Рё СЂРµР°Р»СЊРЅС‹Р№ РІРµСЃ
+//  21.01.15 С‚РµСЃС‚РёСЂРѕРІР°РЅРёРµ 
+//  23.01.15 СѓС€РµР» РѕС‚ С‚РµРєСЃС‚РѕРІС‹С… РїРµСЂРµРјРµРЅРЅС‹С… - РїРѕСЏРІРјР»Р°СЃСЊ РїР°РјСЏС‚СЊ 
+//  14.02.15        
+//  16.02.15 РјС‹ РІ СЌС„РёСЂРµ
+//  17.02.15  СЃС‚Р°СЂС‚ РїСЂРёРІРµС‚ - РѕС‚РІРµС‚
+//
+//    РЅР°С‡Р°Р»Рѕ РєРѕРјРїРѕРЅРѕРІРєРё Рё С‚СЂР°СЃСЃРёСЂРѕРІРєРё
+//							РќРјРџР’
+//			2000РєРі 1РєРі        20   = 2000
+//			3000РєРі 1РєРі        20   = 3000
+//			5000РєРі 2РєРі        40   = 2500
+//			10000РєРі 5РєРі       100  = 2000
+//			15000РєРі 5РєРі       100  = 3000
+//			20000РєРі 10РєРі      200  = 2000
+//			30000РєРі 10РєРі      200  = 3000
+//			50000РєРі 20РєРі      400  = 2500
 //
 //
 //
-//    начало компоновки и трассировки
-//							НмПВ
-//			2000кг 1кг        20   = 2000
-//			3000кг 1кг        20   = 3000
-//			5000кг 2кг        40   = 2500
-//			10000кг 5кг       100  = 2000
-//			15000кг 5кг       100  = 3000
-//			20000кг 10кг      200  = 2000
-//			30000кг 10кг      200  = 3000
-//			50000кг 20кг      400  = 2500
-//
-//
-//
-//	Модель		НПВ, кг	НмПВ, кг	Цена деления, кг	Высота весов, мм	Масса весов, кг	Цена, руб.
-//	МК-2000Д	2000	20			1					550						12			48000
-//	МК-3000Д	3000	20			1					620						15			49900
-//	МК-5000Д	5000	40			2					750						15			59900
-//	МК-10000Д	10000	100			5					970						27			75000
-//	МК-15000Д	15000	100			5					1120					47			85000
-//	МК-20000Д	20000	200			10					1220					50			95000
-//	МК-30000Д	30000	200			10					1400					101			39900
-//	МК-50000Д	50000	400			20					1700					160			190000
+//	РњРѕРґРµР»СЊ		РќРџР’, РєРі	РќРјРџР’, РєРі	Р¦РµРЅР° РґРµР»РµРЅРёСЏ, РєРі	Р’С‹СЃРѕС‚Р° РІРµСЃРѕРІ, РјРј	РњР°СЃСЃР° РІРµСЃРѕРІ, РєРі	Р¦РµРЅР°, СЂСѓР±.
+//	РњРљ-2000Р”	2000	20			1					550						12			48000
+//	РњРљ-3000Р”	3000	20			1					620						15			49900
+//	РњРљ-5000Р”	5000	40			2					750						15			59900
+//	РњРљ-10000Р”	10000	100			5					970						27			75000
+//	РњРљ-15000Р”	15000	100			5					1120					47			85000
+//	РњРљ-20000Р”	20000	200			10					1220					50			95000
+//	РњРљ-30000Р”	30000	200			10					1400					101			39900
+//	РњРљ-50000Р”	50000	400			20					1700					160			190000
 //
 //
 /////////////////////////////////////
@@ -68,7 +69,7 @@
 #define AD0BPLE		    0x06
 #define temperatura     0x01
 #define cell            0x02
-#define otl
+//#define otl
 
 
 
@@ -89,7 +90,7 @@ bit right_old,right_new,rightchench;
 bit tara_old,tara_new,tarachench;
 bit null_old,null_new,nullchench;
 bit flag_sek,flag_sekunda,flag_k,rab;
-bit flag_peredacha;
+bit flag_peredacha,reseach_flag,send_flag,flag_r;
 
 
 
@@ -126,7 +127,7 @@ unsigned char code dis[10]={
 unsigned int xdata pr,tmp3;
 unsigned char xdata tmp2,half,k2,selekt,k1;
 char xdata index,cod_test;
-char xdata msek,sek;
+char xdata msek,sek,msek2;
 ///////////////char xdata xvost[5];
 
 sbit P13 = P1^3;
@@ -167,6 +168,7 @@ bit null_5,null_4,null_3,null_2;
 //bit ADC_buf_overflov;
 //bit ADC_buf_empty=1; 
 bit one,two;
+bit startt,flag_pp;
 							 //  for ADC
 #define Len_ADC_Buf 16       //16
 	//unsigned long xdata ADC_buf[Len_ADC_Buf];
@@ -226,7 +228,7 @@ bit one,two;
 		/* 2 */				0x0a,  //b`00001001,										  //0b00001001
 		/* 3 */			   0x13,  //0b00010011,										  //0b00010011	
 		/* 4 */				OOKFLOORTHRESH_VALUE,							  //0b00001100
-		/* 5 */				0x0f,  //0b00001111,                                       //0b00001111 FIFOSIZE_64 | FIFO_THRSHOLD_1
+		/* 5 */				0x4f,  //0b00001111,                                       //0b00001111 FIFOSIZE_64 | FIFO_THRSHOLD_1
 		/* 6 */				153,
 		/* 7 */				122,
 		/* 8 */				68,
@@ -249,7 +251,7 @@ bit one,two;
 		/* 25 0x19*/ 			0xC3, // 4th byte of Sync word,
 		/* 26 0x1a*/ 			FC_200 | TXPOWER_13,                                           //0b01110000 
 		/* 27 0x1b*/ 			CLKOUT_OFF | CLKOUT_12800,                                     //0b00000000
-		/* 28 0x1c*/ 			MANCHESTER_OFF | 2,										       //0b00000010
+		/* 28 0x1c*/ 			MANCHESTER_OFF | 32,										       //0b00000010
 		/* 29 0x1d*/ 			NODEADRS_VALUE,                                                //0
 		/* 30 0x1e*/ 			PKT_FORMAT_FIXED | PREAMBLE_SIZE_3 | WHITENING_OFF | CRC_ON | ADRSFILT_NONE,  //0b01001000
  		/* 31 0x1f*/ 			FIFO_AUTOCLR_ON | FIFO_STBY_ACCESS_WRITE                      //0b00000000
@@ -261,7 +263,7 @@ bit one,two;
 		/* 2 */				0x0a,  //0b00001001,										  //0b00001001
 		/* 3 */				0x13,  //0b00010011,										  //0b00010011	
 		/* 4 */				OOKFLOORTHRESH_VALUE,							  //0b00001100
-		/* 5 */				0x1f,  //0b00001111,                                       //0b00001111 FIFOSIZE_64 | FIFO_THRSHOLD_1
+		/* 5 */				0x4f,  //0b00001111,                                       //0b00001111 FIFOSIZE_64 | FIFO_THRSHOLD_1
 		/* 6 */				153,
 		/* 7 */				122,
 		/* 8 */				68,
@@ -284,7 +286,7 @@ bit one,two;
 		/* 25 0x19*/ 			0xC3, // 4th byte of Sync word,
 		/* 26 0x1a*/ 			FC_200 | TXPOWER_13,                                           //0b01110000 
 		/* 27 0x1b*/ 			CLKOUT_OFF | CLKOUT_12800,                                     //0b00000000
-		/* 28 0x1c*/ 			MANCHESTER_OFF | 13,										       //0b00000010
+		/* 28 0x1c*/ 			MANCHESTER_OFF | 32,										       //0b00000010
 		/* 29 0x1d*/ 			NODEADRS_VALUE,                                                //0
 		/* 30 0x1e*/ 			PKT_FORMAT_FIXED | PREAMBLE_SIZE_3 | WHITENING_OFF | CRC_ON | ADRSFILT_NONE,  //0b01001000
  		/* 31 0x1f*/ 			FIFO_AUTOCLR_ON | FIFO_STBY_ACCESS_READ                      //0b00000000
@@ -350,7 +352,7 @@ bit one,two;
                                  ~0xf7,~0xf3,~0x02,~0x40,~0x20,~0x10,~0x80,~0x04,
                                  ~0x01,~0x08 };
 
- unsigned char  pdata  regen[5];			// = {'1','2','3','4','5'};
+ unsigned char  pdata  regen[5];			// = {'1','2','3','4','5'}; //
  
  void init_flash(void);
  void copi_kalibr_ves(void);
@@ -359,42 +361,48 @@ bit one,two;
 	void dia(void);
 	void SetRFMode_my( char mode);
 	void Send_Packet_my(void);
-	unsigned char ReceiveFrame_my(void);
+	
+	void ReceiveFrame_my(void);
+	 unsigned char reseach(void);
+	 void write_spi_con(unsigned char A1, unsigned char value);
+	void Send_Packet(void);							 
+								 
 //*************************************************
 //
-//   Перечень команда
+//   РџРµСЂРµС‡РµРЅСЊ РєРѕРјР°РЅРґР°
 //
-//	1 калибровка
-//	6 ноль
-//  7 полный вес  
-//  2  спать
-//  3  подъем 
-//  4  измерения
-//  5  условный ноль
-//  8 команда выполнена
+//	1 РєР°Р»РёР±СЂРѕРІРєР°
+//	6 РЅРѕР»СЊ
+//  7 РїРѕР»РЅС‹Р№ РІРµСЃ  
+//  2  СЃРїР°С‚СЊ
+//  3  РїРѕРґСЉРµРј 
+//  4  РёР·РјРµСЂРµРЅРёСЏ
+//  5  СѓСЃР»РѕРІРЅС‹Р№ РЅРѕР»СЊ
+//  8 РєРѕРјР°РЅРґР° РІС‹РїРѕР»РЅРµРЅР°
 //
 //************************************************								
 //
 //
-// это пакет принятый от головы
-//   команда, вес, температура, напряжение, ведущее число, уровень нуля,k1, k2
+// СЌС‚Рѕ РїР°РєРµС‚ РїСЂРёРЅСЏС‚С‹Р№ РѕС‚ РіРѕР»РѕРІС‹
+//   РєРѕРјР°РЅРґР°, РІРµСЃ, С‚РµРјРїРµСЂР°С‚СѓСЂР°, РЅР°РїСЂСЏР¶РµРЅРёРµ, РІРµРґСѓС‰РµРµ С‡РёСЃР»Рѕ, СѓСЂРѕРІРµРЅСЊ РЅСѓР»СЏ,k1, k2
 //								
  char xdata bu[] ="3,1234567.23,12.34,1234,1234567,1,1";
  
 //***************************************************** 
 // 
-//  пакет калибровки
+//  РїР°РєРµС‚ РєР°Р»РёР±СЂРѕРІРєРё
 //
-//  команда,ведущее число, уровень нуля, k1, k2
+//  РєРѕРјР°РЅРґР°,РІРµРґСѓС‰РµРµ С‡РёСЃР»Рѕ, СѓСЂРѕРІРµРЅСЊ РЅСѓР»СЏ, k1, k2
    //char xdata bu[] ="1, 1234, 1234567, 1, 1";	
  char xdata tm[10];
- int  xdata vesi,ves_digit,vesi1,ves_indik,ves_tara;  // ????????????//
+ int  xdata ves_digit,ves_indik,ves_tara;  // ????????????//
+ unsigned int vesi1,vesi;
 	
 	
 struct pac 
 	 {
 		 char comm;
-		 long ves;
+	unsigned	 long ves;
 		 char temp;
 		 float v;
 		 //int vedushee;
@@ -415,8 +423,13 @@ void Timer_Init()
 {
 	
 	TMOD      = 0x02;
-    CKCON     = 0x01;
+    CKCON     = 0x01;    //  System clock divided by 4
+	CKCON     |= 0x10;
     TMR2CN    = 0x04;
+		TMR2L     = 0x06d;  //0x4a;   ///0x3e;
+		TMR2H     = 0xf6;  //0xa0;   //0X50;			 // b
+		TMR2RLH   = 0xf6;  //0X50;
+		TMR2RLL   = 0x6d;  //0X3e;   
 	TMR3CN    = 0x04;
 	TR2 = 0; 
 	
@@ -433,11 +446,12 @@ void SPI_Init()
 	IT1 = 1;*/
 	
 	
-	IT0 = 1;
-	IT1 = 1;
+
     SPI0CFG   = 0x40;
     SPI0CN    = 0x01;
-    SPI0CKR   = 0x1D;
+    SPI0CKR   = 0x79;
+		IT0 = 1;
+	IT1 = 1;
 }
 
 void Port_IO_Init()
@@ -464,11 +478,11 @@ void Port_IO_Init()
     // P2.2  -  Unassigned,  Push-Pull,  Digital
     // P2.3  -  Unassigned,  Push-Pull,  Digital
 
-    P0MDOUT   = 0xFD;
+    P0MDOUT   = 0xfD;
     P1MDOUT   = 0xFF;
     P2MDOUT   = 0xFF;
     P3MDOUT   = 0x01;
-  //  P0SKIP    = 0xC0;
+  P0SKIP    = 0xC0;
     XBR0      = 0x02;
     XBR1      = 0xC0;
 	
@@ -489,7 +503,7 @@ void Port_IO_Init()
 		IT01CF    = 0xfe;
 							
 		//IT01CF    = 0x76;
-		IE        = 0xE2;   //E7  E2
+		IE        = 0xE7;   //E7  E2
 
 	}
 	void start_timer0(void)
@@ -497,7 +511,7 @@ void Port_IO_Init()
     {
 									// TMOD |=2;
 									// TH0 = 0x10;
-      TR0=1;
+      TR0=1; //
       ET0=1;
 		TR2 = 1;
 									// EA=1;
@@ -521,7 +535,7 @@ void Port_IO_Init()
 	
 	//********************************
 	//
-	//	  запись FLASH
+	//	  Р·Р°РїРёСЃСЊ FLASH
 	//
 	//********************************
 
@@ -540,7 +554,7 @@ void Port_IO_Init()
 	
 	//**********************
 	//
-	//	 чтение FLASH
+	//	 С‡С‚РµРЅРёРµ FLASH
 	//
 	//**********************
 	
@@ -563,8 +577,8 @@ void Port_IO_Init()
 	
 	//*****************************
 	//
-	//  Прописываем Flash первый
-	//  раз
+	//  РџСЂРѕРїРёСЃС‹РІР°РµРј Flash РїРµСЂРІС‹Р№
+	//  СЂР°Р·
 	//
 	//*****************************
 		
@@ -593,7 +607,7 @@ void Port_IO_Init()
 	
 	//**********************
 	//
-	//	 хождение по дискрету
+	//	 С…РѕР¶РґРµРЅРёРµ РїРѕ РґРёСЃРєСЂРµС‚Сѓ
 	//
 	//**********************
 	
@@ -624,7 +638,7 @@ void Port_IO_Init()
 
 	//********************************
 	//
-	//  Вывод тестирования индикатора
+	//  Р’С‹РІРѕРґ С‚РµСЃС‚РёСЂРѕРІР°РЅРёСЏ РёРЅРґРёРєР°С‚РѕСЂР°
 	//
 	//********************************
 	
@@ -683,7 +697,7 @@ void Port_IO_Init()
 	
 	//*****************************
 	//
-	//  Вывод 5 нулей
+	//  Р’С‹РІРѕРґ 5 РЅСѓР»РµР№
 	//
 	//*****************************
 	
@@ -706,7 +720,7 @@ void Port_IO_Init()
 	
 	//*****************************
 	//
-	//  Вывод веса калибровки .
+	//  Р’С‹РІРѕРґ РІРµСЃР° РєР°Р»РёР±СЂРѕРІРєРё .
 	//
 	//*****************************
 	
@@ -728,7 +742,7 @@ void Port_IO_Init()
 	
 	//*****************************
 	//
-	//  Вывод таблицы весов
+	//  Р’С‹РІРѕРґ С‚Р°Р±Р»РёС†С‹ РІРµСЃРѕРІ
 	//
 	//*****************************
 	
@@ -745,7 +759,7 @@ void Port_IO_Init()
 	
 	//*****************************
 	//
-	//  Вывод таблицы % веса
+	//  Р’С‹РІРѕРґ С‚Р°Р±Р»РёС†С‹ % РІРµСЃР°
 	//
 	//*****************************
 	
@@ -776,7 +790,7 @@ void Port_IO_Init()
 	
 	//*****************************
 	//
-	//  Инициализация параметров
+	//  РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ РїР°СЂР°РјРµС‚СЂРѕРІ
 	//
 	//*****************************
 	
@@ -784,6 +798,9 @@ void Port_IO_Init()
 	
 	void init_param(void)
 		{
+		reseach_flag = 0;
+send_flag = 0;	
+flag_r = 0;	
 		flag_peredacha = 0;
 		one=0;
 		two=0;
@@ -797,7 +814,10 @@ void Port_IO_Init()
 		P16 = 0;
 		P17 = 0;
 		flag_sek = 0;
+		startt = 0;
+		flag_pp = 0;
 		msek = 0;
+		msek2 = 0;
 		sek= 0;
 		flag_sekunda = 0;	
 		Init_Device();
@@ -837,7 +857,7 @@ void Port_IO_Init()
 		
 	void tes(char k1,char sel)
 		{
-			right_new = right;                        // БОЛЬШЕ
+			right_new = right;                        // Р‘РћР›Р¬РЁР•
 			if (right_old != right_new) 
 				{
 					if (!right_new)
@@ -857,7 +877,7 @@ void Port_IO_Init()
 						}
 						right_old = right_new;
 				}
-			left_new = left;							//  МЕНЬШЕ
+			left_new = left;							//  РњР•РќР¬РЁР•
 			if (left_old != left_new) 
 				{
 					if (!left_new)
@@ -885,13 +905,13 @@ void Port_IO_Init()
 		
 		switch (k2)
 						{
-							case 0:                   // выбираем грузопдъемность весов
+							case 0:                   // РІС‹Р±РёСЂР°РµРј РіСЂСѓР·РѕРїРґСЉРµРјРЅРѕСЃС‚СЊ РІРµСЃРѕРІ
 								//init_read();
 								index = BB.variable.k1;
 								k1 =  7;
 								copi(index);
 								break;
-							case 1:                   // каким % будем грузить
+							case 1:                   // РєР°РєРёРј % Р±СѓРґРµРј РіСЂСѓР·РёС‚СЊ
 							    BB.variable.k1= index;
 								//init_write();
 						//		init_read();
@@ -900,14 +920,14 @@ void Port_IO_Init()
 								copi_dis(index);
 								selekt = 2;
 								break;
-							case 2:						 // ждем нулевой вес
+							case 2:						 // Р¶РґРµРј РЅСѓР»РµРІРѕР№ РІРµСЃ
 								 BB.variable.k2= index;
 								//init_write();
 								//init_read();
 								copi_null();
 								
 								break;
-							case 3:                     // калибровка нулевого веса
+							case 3:                     // РєР°Р»РёР±СЂРѕРІРєР° РЅСѓР»РµРІРѕРіРѕ РІРµСЃР°
 								null_5 = 0;
 								null_4 = 0;
 								null_3 = 0;
@@ -915,13 +935,13 @@ void Port_IO_Init()
 								flag_sekunda = 1;
 								TR2 = 1;
 								break;
-							case 4:                   // выводим вес калибровки
+							case 4:                   // РІС‹РІРѕРґРёРј РІРµСЃ РєР°Р»РёР±СЂРѕРІРєРё
 								sek = 0;
 								msek = 0;
 								copi_kalibr_ves();
 								break;
-							case 5:                 // калебруем нагруженную платформу
-							// запомнить ведущее число
+							case 5:                 // РєР°Р»РµР±СЂСѓРµРј РЅР°РіСЂСѓР¶РµРЅРЅСѓСЋ РїР»Р°С‚С„РѕСЂРјСѓ
+							// Р·Р°РїРѕРјРЅРёС‚СЊ РІРµРґСѓС‰РµРµ С‡РёСЃР»Рѕ
 								TR2 = 1;
 								null_5 = 0;
 								null_4 = 0;
@@ -929,9 +949,9 @@ void Port_IO_Init()
 								null_2 = 0;
 								flag_sekunda = 1;
 								break;
-							case 6:                   // конец калибровки
+							case 6:                   // РєРѕРЅРµС† РєР°Р»РёР±СЂРѕРІРєРё
 								flag_k = 0;
-								// это конец калибровки
+								// СЌС‚Рѕ РєРѕРЅРµС† РєР°Р»РёР±СЂРѕРІРєРё
 								break;
 						}	
 	}
@@ -1012,48 +1032,49 @@ void main(void)
 	{
 		PCA0MD &= ~0x40;
 														//	ves_digit=12345;
-														//	ii =  , es_digit %10;   // 1 разряд 5
-														//	ii = ves_digit %100/10;  // 2 разряд 4
-														//	ii = ves_digit %1000/100;  // 3 разряд 3
-														//	ii = ves_digit %10000/1000;  // 4 разряд 2
-														//	ii = ves_digit %100000/10000;  // 5 разряд 1
+														//	ii =  , es_digit %10;   // 1 СЂР°Р·СЂСЏРґ 5
+														//	ii = ves_digit %100/10;  // 2 СЂР°Р·СЂСЏРґ 4
+														//	ii = ves_digit %1000/100;  // 3 СЂР°Р·СЂСЏРґ 3
+														//	ii = ves_digit %10000/1000;  // 4 СЂР°Р·СЂСЏРґ 2
+														//	ii = ves_digit %100000/10000;  // 5 СЂР°Р·СЂСЏРґ 1
 														
-		packet.var.ves = 5123456;
-	
-			packet.var.temp = -13;
-			packet.var.v = 12.34;
-			packet.var.comm= 3;
-	for (ii =0;ii< (packetlength); ii++)
-	{
-		 RxPacket[ii] = 0;
-	}		
+							packet.var.ves = 512345;
+							packet.var.temp = -13;
+							packet.var.v = 12.34;
+							packet.var.comm= 3;
+							//for (ii =0;ii< (packetlength); ii++)
+								{
+								//	 RxPacket[ii] = 0;
+								}		
 				
-	RxPacket[0]	= 0x16;	 
-	RxPacket[1]	= 0x23;	 
-	for (ii =2;ii< (sizeof(struct pac)+2); ii++)
-	{
-		 RxPacket[ii] = packet.Byte[ii-2];
-	}
+							RxPacket[0]	= 0x16;	 
+							RxPacket[1]	= 0x23;	 
+						//for (ii =2;ii< (sizeof(struct pac)+2); ii++)
+									{
+										// RxPacket[ii] = packet.Byte[ii-2];
+									}
 	
 			 
-	for (ii =2;ii< (sizeof(struct pac)+2); ii++)
-	{
-		packet2.Byte[ii-2] = RxPacket[ii];
-	}												
-	/*														
-		for (ii =0; ii < sizeof(packet);ii++)
-		    packet2.Byte[ii] = packet.Byte[ii];
-	*/	
+						//	for (ii =2;ii< (sizeof(struct pac)+2); ii++)
+								{
+								//	packet2.Byte[ii-2] = RxPacket[ii];
+								}												
+													/*														
+														for (ii =0; ii < sizeof(packet);ii++)
+															packet2.Byte[ii] = packet.Byte[ii];
+													*/	
 		
 		ves_digit=2796;
 		vesi1 = (int)(packet.var.ves/ves_digit);
 		vesi = zn(vesi1);
-		//regen1 = zn(vesi1);
-	   // razborka();
+													//regen1 = zn(vesi1);
+												   // razborka();
 		_nop_();
 		init_param();
+		flag_int0 = 0;
+		flag_int1 = 0;
 		//while (1);
-		val = read_spi_con(0x01);
+	//	val = read_spi_con(0x01);
 		//	while (1)
 		
 			{
@@ -1063,17 +1084,19 @@ void main(void)
 												//	val = read_spi_con(2);
 				while (i < 0x20)
 					{
-					//регистры выставлены
-								write_spi_con(i,InitConfigRegsPer[i]);
-								val = read_spi_con(i); 
-								a5 = InitConfigRegsPer[i];
+					//СЂРµРіРёСЃС‚СЂС‹ РІС‹СЃС‚Р°РІР»РµРЅС‹
+								write_spi_con(i,InitConfigRegsPri[i]);
+						//		val = read_spi_con(i); 
+						//		a5 = InitConfigRegsPri[i];
 								i++;
 					}
 					
 
 						i = 0;
-								
-						dia();
+						#ifdef otl		
+		dia();
+#endif			
+						
 						
 						val = read_spi_con(0x0e);
 						write_spi_con(0x0e,(val | 0x02));
@@ -1087,16 +1110,19 @@ void main(void)
 
 							}
 						while (!(val & 0x02));
-						dia();
+						#ifdef otl		
+		dia();
+#endif	
+					
 						
-						//SetRFMode_my(RF_RECEIVER);
-						
-						while (1)
-						{	
-							Send_Packet_my();
-							//ReceiveFrame_my();
-						i++;
-						}
+												//SetRFMode_my(RF_RECEIVER);
+												/*
+												while (1)
+												{	
+												//Send_Packet_my();
+													ReceiveFrame_my();
+												i++;
+												}*/
 			}
 												//addr = 0x1c00;
 												//FLASH_PageErase (addr);
@@ -1128,20 +1154,67 @@ void main(void)
 			null_4 = 1;
 			null_3 = 1;
 			null_2 = 1;
-			//regen1 = 12345;
+												//regen1 = 12345;
 			
 			while (1)
 			{
-			
-				ReceiveFrame_my();
+				if (flag_r)
+				{
+					if (!reseach_flag)
+					{
+						write_spi_con(0x0d,InitConfigRegsPri[0x0d]);
+						write_spi_con(0x0e,InitConfigRegsPri[0x0e]);
+						ReceiveFrame_my();
+						flag_r =~flag_r;
+						
+					}
+					if (flag_int1)
+						reseach();
+						startt = 1;
+				}
+				else
+				{
+					if (!send_flag)
+						{
+							write_spi_con(0x0d,InitConfigRegsPri[0x0d]);
+							write_spi_con(0x0e,InitConfigRegsPri[0x0e]);
+							Send_Packet_my();
+						
+						}	
+					if (flag_int1)
+						Send_Packet();
+						flag_r =~flag_r;                   
+				}
+				//*********************************
+				
+				// Р¶РґРµРј 0Р±1 СЃРµРє
+				// РїРµСЂРµРіСЂСѓР¶Р°РµРј СЂРµРіРёСЃС‚СЂС‹ РґР»СЏ РїРµСЂРµРґР°С‡Рё
+				
+					//const char code InitConfigRegsPer[]
+				
+				
+					/* 13 0x0d*/			//IRQ1_TX_TXDONE,                                   //0b00001000        **          
+					/* 14 0x0e*/ 			//IRQ0_TX_START_FIFONOTEMPTY | IRQ1_PLL_LOCK_PIN_ON,      
+				
+				// РѕС‚РІРµС‡Р°РµРј С‡РµРј-С‚Рѕ
+				// РїРµСЂРµРєР»СЋС‡Р°РµРј СЂРµРіРёСЃС‚СЂС‹ РґР»СЏ РїСЂРёРµРјР°
+				
+				    //InitConfigRegsPri[]
+					/* 13 0x0d*/			//IRQ0_RX_STDBY_FIFOEMPTY | IRQ1_RX_STDBY_CRCOK,                                   //0b00001000        **          
+					/* 14 0x0e*/ 			//IRQ1_PLL_LOCK_PIN_ON,            //0b00010001
+					
+					
+				//*********************************
+				
+				vesi1 = (int)(packet.var.ves);
 				vesi1 = (int)(packet.var.ves/ves_digit);
 				vesi = zn(vesi1);
-				regen1 = zn(vesi1);
+													//regen1 = zn(vesi1);
 				tara_proc();
-				//ves_indik = vesi-ves_tara;
+													//ves_indik = vesi-ves_tara;
 				regen1 = vesi-ves_tara;
 					
-				//sprintf(regen,"%0.5u",ves_indik); 
+													//sprintf(regen,"%0.5u",ves_indik); 
 				
 				null_5 = ((regen1 % 100000/10000) != 0);
 				if (!null_5)
@@ -1161,7 +1234,7 @@ void main(void)
 	
 	//*****************************
 	//
-	//  Регенерация видеопамяти
+	//  Р РµРіРµРЅРµСЂР°С†РёСЏ РІРёРґРµРѕРїР°РјСЏС‚Рё
 	//
 	//*****************************
 	
@@ -1236,7 +1309,7 @@ void main(void)
 	
 	//*****************************
 	//
-	//  Секундная метка
+	//  РЎРµРєСѓРЅРґРЅР°СЏ РјРµС‚РєР°
 	//
 	//*****************************
 		
@@ -1261,12 +1334,22 @@ void main(void)
 			kalib_1();	
 			TR2 = 0;
 			}
+		if (startt)
+		{
+			msek2++;
+			if (msek2 > 30)
+			{
+				startt = 0;
+				msek2 = 0;
+				flag_r = 1;
+			}
+		}			
 		_nop_();
 	}
 	
 	//*****************************
 	//
-	//  Секундная метка
+	//  РЎРµРєСѓРЅРґРЅР°СЏ РјРµС‚РєР°
 	//
 	//*****************************
 		
@@ -1396,12 +1479,12 @@ unsigned char ReadFIFO(void)
 					diagnoz[1] = read_spi_con(0x0d); 
 					diagnoz[2] = read_spi_con(0x0e); 
 					diagnoz[3] = read_spi_con(0x1d); 
-					diagnoz[4] = read_spi_con(0x1c);  // КОЛ-БАЙТ
-					diagnoz[5] = read_spi_con(0x14);  //   RSSI Value bits мощность
-					diagnoz[6] = read_spi_con(0x1a);  //  bit 3-1 TXOPVAL<2:0>:Transmit Output Power Value bits (1 step 3dB)   000= 13 dBm  
+					diagnoz[4] = read_spi_con(0x1c);  // РљРћР›-Р‘РђР™Рў
+					diagnoz[5] = read_spi_con(0x14);  //   RSSI Value bits РјРѕС‰РЅРѕСЃС‚СЊ
+					diagnoz[6] = read_spi_con(0x1a);  //  bit 3-1 TXOPVAL<2:0>:Transmit Output Power Value bits (1 step В3dB)   000= 13 dBm  
 					diagnoz[7] = read_spi_con(0x12);
 					diagnoz[8] = read_spi_con(0x1e);
-				   diagnoz[9] = read_spi_con(0x04);
+				   diagnoz[9] = read_spi_con(0x05);
 				    diagnoz[10] = read_spi_con(0x1f);
 					a=0;
 											//	di_();
@@ -1430,39 +1513,39 @@ unsigned char ReadFIFO(void)
 		write_spi_con(0x1F, ((InitConfigRegsPer[0x1F] & 0xBF)| FIFO_STBY_ACCESS_WRITE));
 		write_spi_con(0x0D, (InitConfigRegsPer[0x0D] | IRQ1_FIFO_OVERRUN_CLEAR ));
 		write_spi_con(0x0E, ((InitConfigRegsPer[0x0E]) | 0x02));
-		write_spi_con(0x16, 0x97);	//на передачу
+		write_spi_con(0x16, 0x97);	//РЅР° РїРµСЂРµРґР°С‡Сѓ
 #ifdef otl		
 		dia();
 #endif		
-		//WriteFIFO(TxPacketLen+1);
+									//WriteFIFO(TxPacketLen+1);
 		WriteFIFO(16);	//Node_adrs
 		WriteFIFO(0x23);
 		init_RX();
 		init_TX();
-		for(i=0; i< packetlength; i++)
+		for(i=0; i< 24; i++)
 		{
 		WriteFIFO(TxPacket[i]);
 		}
-/*
-		a1 =read_spi_con(0x1f); 
-		write_spi_con(0x1F,0x40);
-		a2 =read_spi_con(0x1f); 
-		a= 0;
-			while (a<32)
-					{
-						dat = ReadFIFO();
-						RxPacket[a] = dat;	
-						a++;
-					}
-		write_spi_con(0x1F,a1);
+									/*
+											a1 =read_spi_con(0x1f); 
+											write_spi_con(0x1F,0x40);
+											a2 =read_spi_con(0x1f); 
+											a= 0;
+												while (a<32)
+														{
+															dat = ReadFIFO();
+															RxPacket[a] = dat;	
+															a++;
+														}
+											write_spi_con(0x1F,a1);
 
-*/
+									*/
 
-	//	INTCONbits.GIE = 0;    //?
-		//до этого момента на ноге прерывания 0
+									//	INTCONbits.GIE = 0;    //?
+									//РґРѕ СЌС‚РѕРіРѕ РјРѕРјРµРЅС‚Р° РЅР° РЅРѕРіРµ РїСЂРµСЂС‹РІР°РЅРёСЏ 0
 		SetRFMode_my(RF_TRANSMITTER);
-		EX0 = 1;
-		EX1 = 1;
+									//	EX0 = 1;
+									//	EX1 = 1;
 #ifdef otl					
 //		dia();
 #endif						
@@ -1471,67 +1554,81 @@ unsigned char ReadFIFO(void)
 	_nop_();_nop_();_nop_();_nop_();
 	_nop_();_nop_();_nop_();_nop_();
 		}
-
+		send_flag = 1;
+	}
+	
+	void Send_Packet(void)
+	{
 	while(!(flag_int1));
-		flag_int0 = 0;
-	//здесь должно на ноге irq1 появиться лог 1
-	//     IT01CF    = 0xFE;
-    //     IE        = 0x85; ( 0x05) EX1 EX0 )
-	//    TCON     (IE1   IE0 )  0 - к уровню           1 - к фронту
+		flag_int1 = 0;
+									//Р·РґРµСЃСЊ РґРѕР»Р¶РЅРѕ РЅР° РЅРѕРіРµ irq1 РїРѕСЏРІРёС‚СЊСЃСЏ Р»РѕРі 1
+									//     IT01CF    = 0xFE;
+									//     IE        = 0x85; ( 0x05) EX1 EX0 )
+									//    TCON     (IE1   IE0 )  0 - Рє СѓСЂРѕРІРЅСЋ           1 - Рє С„СЂРѕРЅС‚Сѓ
 
-	//
-	//
+									//
+									//
 		{
-		_nop_();	//ожидание прерывания будет заменено временной задержкой.
+		_nop_();	//РѕР¶РёРґР°РЅРёРµ РїСЂРµСЂС‹РІР°РЅРёСЏ Р±СѓРґРµС‚ Р·Р°РјРµРЅРµРЅРѕ РІСЂРµРјРµРЅРЅРѕР№ Р·Р°РґРµСЂР¶РєРѕР№.
 		_nop_();
 		_nop_();
 		_nop_();
 		}
 
-	//	INTCONbits.GIE = 1;   //?
+									//	INTCONbits.GIE = 1;   //?
 #ifdef otl			
 		dia();
 #endif		
 		
 		write_spi_con(0x16, 0x68);
-		SetRFMode_my(RF_RECEIVER);	//rfmode = ресивер
-		//Reset FIFO  очистить буфер после передачи
+		SetRFMode_my(RF_RECEIVER);	//rfmode = СЂРµСЃРёРІРµСЂ
+									//Reset FIFO  РѕС‡РёСЃС‚РёС‚СЊ Р±СѓС„РµСЂ РїРѕСЃР»Рµ РїРµСЂРµРґР°С‡Рё
 		i = read_spi_con(REG_IRQPARAM0);
 		write_spi_con(REG_IRQPARAM0, (i | 0x01));
+		send_flag = 0;
 
 	}	
-unsigned char ReceiveFrame_my(void)///////////////////////////////////////////////////////////
+void  ReceiveFrame_my(void)
 		{
-			unsigned char  dat, node_adrs;
-			unsigned char i = 0;
+			
 				SetRFMode_my(RF_STANDBY);
 			///////////////////////
 			write_spi_con(0x1F, ((InitConfigRegsPri[0x1F] & 0xBF)| FIFO_STBY_ACCESS_READ)|FIFO_AUTOCLR_OFF);// 
 			write_spi_con(0x0D, (InitConfigRegsPri[0x0D] | IRQ1_FIFO_OVERRUN_CLEAR ));
 			write_spi_con(0x0E, ((InitConfigRegsPri[0x0E]) | 0x02));
-		//	write_spi_con(0x16, 0x97);		   // 0x97
-		//EX0 = 1;
-		//EX1 = 1;
+											//	write_spi_con(0x16, 0x97);		   // 0x97
+											//EX0 = 1;
+											//EX1 = 1;
 			SetRFMode_my(RF_RECEIVER);
-			EX0 = 1;
-		EX1 = 1;
+												//EX0 = 1;
+											//EX1 = 1;
+
+											//	dia();
 			init_RX();
-	#ifdef otl		
-		//	dia();
-	#endif			
+			reseach_flag = 1;
+		}
+		
+											//	#ifdef otl		
+													
+											//	#endif			
 			//////////////////////////
-			
-			_nop_();//while(!(flag_int1));
+ unsigned char reseach(void)
+	{		
+	unsigned char  dat, node_adrs;
+			unsigned char i = 0;
+	
+	//	while(!(flag_int1))
+			_nop_();
 		#ifdef otl			
-		//	dia();
+			dia();
 		#endif		
 				SetRFMode_my(RF_STANDBY);
-			RxPacketLen = 16;  // ReadFIFO();	
+			RxPacketLen = 32;  // ReadFIFO();	
 			flag_int0 = 0;
 			node_adrs = ReadFIFO();
 			RxPacketLen = (RxPacketLen-1);
 	
-
+			i = 0;
 			while(RxPacketLen--)
 			{
 			flag_int0 = 0;
@@ -1540,28 +1637,37 @@ unsigned char ReceiveFrame_my(void)/////////////////////////////////////////////
 			i++;
 			};
 		RxPacketLen = i;
-			
+		for (i =0;i< (sizeof(struct pac)); i++)
+	{
+		   packet.Byte[i]=RxPacket[i];
+	}
+
+
+		
 	flag_int1 = 0;
 
-			//write_spi_con(0x0D, (0x0a));	//перезагрузить фифо
+			write_spi_con(0x0D, (0x0a));	//РїРµСЂРµР·Р°РіСЂСѓР·РёС‚СЊ С„РёС„Рѕ
 				i = read_spi_con(REG_IRQPARAM0);
 		        write_spi_con(REG_IRQPARAM0, (i | 0x01));
 			
-			
+			reseach_flag = 0;
+			send_flag = 0;
 			return node_adrs;
+			
 		}
+		
 	void irq0_int(void) interrupt 0
 	 	{
 
 
-			  IE0 = 0;                        // Clear the SPIF flag
+			//  IE0 = 0;                        // Clear the SPIF flag
 			  flag_int0 = 1;
 		}
 		void irq1_int(void) interrupt 2
 	 	{
 
 
-			  IE1 = 0;                        // Clear the SPIF flag
+		//	  IE1 = 0;                        // Clear the SPIF flag
 			  flag_int1 = 1;
 		}
 

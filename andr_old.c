@@ -76,7 +76,7 @@
 		/* 2 */				0x0a,  //b`00001001,										  //0b00001001
 		/* 3 */			   0x13,  //0b00010011,										  //0b00010011	
 		/* 4 */				OOKFLOORTHRESH_VALUE,							  //0b00001100
-		/* 5 */				0x0f,  //0b00001111,                                       //0b00001111 FIFOSIZE_64 | FIFO_THRSHOLD_1
+		/* 5 */				0x4f,  //0b00001111,                                       //0b00001111 FIFOSIZE_64 | FIFO_THRSHOLD_1
 		/* 6 */				153,
 		/* 7 */				122,
 		/* 8 */				68,
@@ -99,7 +99,7 @@
 		/* 25 0x19*/ 			0xC3, // 4th byte of Sync word,
 		/* 26 0x1a*/ 			FC_200 | TXPOWER_13,                                           //0b01110000 
 		/* 27 0x1b*/ 			CLKOUT_OFF | CLKOUT_12800,                                     //0b00000000
-		/* 28 0x1c*/ 			MANCHESTER_OFF | 2,										       //0b00000010
+		/* 28 0x1c*/ 			MANCHESTER_OFF | 32,										       //0b00000010
 		/* 29 0x1d*/ 			NODEADRS_VALUE,                                                //0
 		/* 30 0x1e*/ 			PKT_FORMAT_FIXED | PREAMBLE_SIZE_3 | WHITENING_OFF | CRC_ON | ADRSFILT_NONE,  //0b01001000
  		/* 31 0x1f*/ 			FIFO_AUTOCLR_ON | FIFO_STBY_ACCESS_WRITE                      //0b00000000
@@ -111,7 +111,7 @@
 		/* 2 */				0x0a,  //0b00001001,										  //0b00001001
 		/* 3 */				0x13,  //0b00010011,										  //0b00010011	
 		/* 4 */				OOKFLOORTHRESH_VALUE,							  //0b00001100
-		/* 5 */				0x1f,  //0b00001111,                                       //0b00001111 FIFOSIZE_64 | FIFO_THRSHOLD_1
+		/* 5 */				0x43,  //0b00001111,                                       //0b00001111 FIFOSIZE_64 | FIFO_THRSHOLD_1
 		/* 6 */				153,
 		/* 7 */				122,
 		/* 8 */				68,
@@ -134,26 +134,26 @@
 		/* 25 0x19*/ 			0xC3, // 4th byte of Sync word,
 		/* 26 0x1a*/ 			FC_200 | TXPOWER_13,                                           //0b01110000 
 		/* 27 0x1b*/ 			CLKOUT_OFF | CLKOUT_12800,                                     //0b00000000
-		/* 28 0x1c*/ 			MANCHESTER_OFF | 13,										       //0b00000010
+		/* 28 0x1c*/ 			MANCHESTER_OFF | 32,										       //0b00000010
 		/* 29 0x1d*/ 			NODEADRS_VALUE,                                                //0
 		/* 30 0x1e*/ 			PKT_FORMAT_FIXED | PREAMBLE_SIZE_3 | WHITENING_OFF | CRC_ON | ADRSFILT_NONE,  //0b01001000
  		/* 31 0x1f*/ 			FIFO_AUTOCLR_ON | FIFO_STBY_ACCESS_READ                      //0b00000000
 							};				
-	unsigned char xdata  TxPacket[packetlength];
-	unsigned char  xdata RxPacket[packetlength];				
+	unsigned char xdata  TxPacket[32];
+	unsigned char  xdata RxPacket[32];				
 					
 								//SBIT (AD0VREF, ADC0CF, 2);   
 								//sbit AD0VREF = ADC0CF^4;  
 								//SBIT (AD0ISEL, ADC0CF, 4);     
- /* sbit A00 = P0^0; 
+  sbit A00 = P0^0; 
   sbit  A01 = P0^1; 
   sbit IRQ0 = P0^6;    
   sbit IRQ1 = P0^7;  
   sbit reset = P1^0;
   sbit CSCON= P1^2;
-  sbit CSDAT = P1^3;*/
+  sbit CSDAT = P1^3;
   
-  
+  /*
    sbit A00 = P0^0; 
   sbit  A01 = P0^1; 
   sbit IRQ0 = P0^6;    	// 0.7
@@ -162,7 +162,7 @@
   sbit CSCON= P1^3;		// ***********   P1,2
   sbit CSDAT = P1^2;	// ***********   P1.3
  
-  
+  */
  
   bit cs_con = 1;
   bit cs_dat = 1;
@@ -306,7 +306,8 @@ union pack
  void Timer_Init()
 {
     TMOD      = 0x20;
-    CKCON     = 0x41;
+    CKCON     = 0x41;     // Bit6: T3ML: Timer 3 Low Byte Clock Select
+							// System clock divided by 4
     TH1       = 0x60;
 	TMR3CN    = 0x04;
 //	TR3 = 1;
@@ -321,7 +322,7 @@ void UART_Init()
 	{
 		SPI0CFG   = 0x40;
 		SPI0CN    = 0x01;
-		SPI0CKR   = 0x79;		   //  	 0x1D
+		SPI0CKR   = 0x97;//0x79;		   //  	 0x1D
 		IT0 = 1;
 		IT1 = 1;
 	}
@@ -416,18 +417,18 @@ void Port_IO_Init()
     // P1.5  -  Unassigned,  Push-Pull,  Digital
     // P1.6  -  Unassigned,  Push-Pull,  Digital
     // P1.7  -  Unassigned,  Open-Drain, Digital
-/*
+
     P0MDOUT   = 0xFD;
     P1MDOUT   = 0x7F;
     XBR0      = 0x02;
     XBR1      = 0xC0;
-*/
+/*
               P0MDOUT   = 0xFB;
     P1MDOUT   = 0x0D;
     P0SKIP    = 0x01;
     XBR0      = 0x02;
     XBR1      = 0xC0;
-    
+   */ 
 
 
 }
@@ -447,7 +448,7 @@ void Interrupts_Init()
 								
 	EIE1      = 0x88;  // timer 3
 						//EIE1      = 0x08;
-    IT01CF    = 0x07;
+    IT01CF    = 0xfe;//0x07;
     IE        = 0xe5;
 	
 	
@@ -685,7 +686,7 @@ void di_(void)
 					diagnoz[6] = read_spi_con(0x1a);  //  bit 3-1 TXOPVAL<2:0>:Transmit Output Power Value bits (1 step 3dB)   000= 13 dBm  
 					diagnoz[7] = read_spi_con(0x12);
 					diagnoz[8] = read_spi_con(0x1e);
-				   diagnoz[9] = read_spi_con(0x04);
+				   diagnoz[9] = read_spi_con(0x05);
 				    diagnoz[10] = read_spi_con(0x1f);
 					a=0;
 											//	di_();
@@ -717,11 +718,11 @@ void di_(void)
 		dia();
 		//WriteFIFO(TxPacketLen+1);
 		SetRFMode_my(RF_STANDBY);
-		WriteFIFO(16);	//Node_adrs
+		//WriteFIFO(16);	//Node_adrs
 		WriteFIFO(0x23);
 		init_RX();
 		init_TX();
-		for(i=0; i< packetlength; i++)
+		for(i=0; i< 24; i++)
 		{
 		WriteFIFO(TxPacket[i]);
 			_nop_();
@@ -730,7 +731,7 @@ void di_(void)
 			_nop_();
 			_nop_();
 		}
-
+/*
 		a1 =read_spi_con(0x1f); 
 		write_spi_con(0x1F,0x40);
 		a2 =read_spi_con(0x1f); 
@@ -744,7 +745,7 @@ void di_(void)
 					}
 		write_spi_con(0x1F,a1);
 
-
+*/
 
 	//	INTCONbits.GIE = 0;    //?
 		//до этого момента на ноге прерывания 0
@@ -756,8 +757,8 @@ void di_(void)
 	_nop_();_nop_();_nop_();_nop_();
 		}
 
-	while(!(flag_int0));
-		flag_int0 = 0;
+	while(!(flag_int1));
+		flag_int1 = 0;
 	//здесь должно на ноге irq1 появиться лог 1
 	//     IT01CF    = 0xFE;
     //     IE        = 0x85; ( 0x05) EX1 EX0 )
@@ -777,7 +778,7 @@ void di_(void)
 		
 		
 		write_spi_con(0x16, 0x68);
-		SetRFMode_my(RF_RECEIVER);	//rfmode = ресивер
+		SetRFMode_my(RF_STANDBY);	//rfmode = ресивер
 		//Reset FIFO  очистить буфер после передачи
 		i = read_spi_con(REG_IRQPARAM0);
 		write_spi_con(REG_IRQPARAM0, (i | 0x01));
@@ -829,14 +830,16 @@ unsigned char ReceiveFrame_my(void)
 			//////////////////////////
 			
 			while(!(flag_int1));
+		//	dia();
+		//	dia();
 			dia();
 				SetRFMode_my(RF_STANDBY);
-			RxPacketLen = 16;  // ReadFIFO();	
+			RxPacketLen = 32;  // ReadFIFO();	
 			flag_int0 = 0;
 			node_adrs = ReadFIFO();
 			RxPacketLen = (RxPacketLen-1);
 			
-
+	i = 0;
 			while(RxPacketLen--)
 			{
 			flag_int0 = 0;
@@ -845,10 +848,10 @@ unsigned char ReceiveFrame_my(void)
 			i++;
 			};
 		RxPacketLen = i;
-			
+	dia();		
 	flag_int1 = 0;
 
-			//write_spi_con(0x0D, (0x0a));	//перезагрузить фифо
+			write_spi_con(0x0D, (0x0a));	//перезагрузить фифо
 				i = read_spi_con(REG_IRQPARAM0);
 		        write_spi_con(REG_IRQPARAM0, (i | 0x01));
 			
@@ -1108,7 +1111,7 @@ void main(void)
 						SetRFMode_my(RF_RECEIVER);
 						while (1)
 						{	
-							//Send_Packet_my();
+						//	Send_Packet_my();
 							ReceiveFrame_my();
 						i++;
 						}
