@@ -124,7 +124,7 @@ unsigned char code dis[10]={
 		{ 100}
 	};
 	
-unsigned int xdata pr,tmp3;
+unsigned int xdata pr,tmp3,zj;
 unsigned char xdata tmp2,half,k2,selekt,k1;
 char xdata index,cod_test;
 char xdata msek,sek,msek2;
@@ -1519,7 +1519,8 @@ unsigned char ReadFIFO(void)
 		dia();
 #endif		
 									//WriteFIFO(TxPacketLen+1);
-		WriteFIFO(16);	//Node_adrs
+		zj++;							
+		WriteFIFO(zj);	//Node_adrs
 		WriteFIFO(0x23);
 		init_RX();
 		init_TX();
