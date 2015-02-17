@@ -799,8 +799,8 @@ void Port_IO_Init()
 	void init_param(void)
 		{
 		reseach_flag = 0;
-send_flag = 0;	
-flag_r = 0;	
+		send_flag = 0;	
+		flag_r = 0;	
 		flag_peredacha = 0;
 		one=0;
 		two=0;
@@ -1074,7 +1074,7 @@ void main(void)
 		flag_int0 = 0;
 		flag_int1 = 0;
 		//while (1);
-	//	val = read_spi_con(0x01);
+		val = read_spi_con(0x01);
 		//	while (1)
 		
 			{
@@ -1086,8 +1086,8 @@ void main(void)
 					{
 					//регистры выставлены
 								write_spi_con(i,InitConfigRegsPri[i]);
-						//		val = read_spi_con(i); 
-						//		a5 = InitConfigRegsPri[i];
+								val = read_spi_con(i); 
+								a5 = InitConfigRegsPri[i];
 								i++;
 					}
 					
@@ -1158,19 +1158,20 @@ void main(void)
 			
 			while (1)
 			{
-				if (flag_r)
+				if (!flag_r)
 				{
 					if (!reseach_flag)
 					{
 						write_spi_con(0x0d,InitConfigRegsPri[0x0d]);
 						write_spi_con(0x0e,InitConfigRegsPri[0x0e]);
 						ReceiveFrame_my();
-						flag_r =~flag_r;
+						
 						
 					}
 					if (flag_int1)
-						reseach();
-						startt = 1;
+						{reseach();
+						flag_r =~flag_r;					
+						startt = 1;}
 				}
 				else
 				{
@@ -1182,8 +1183,8 @@ void main(void)
 						
 						}	
 					if (flag_int1)
-						Send_Packet();
-						flag_r =~flag_r;                   
+						{Send_Packet();
+						flag_r =~flag_r;  }                 
 				}
 				//*********************************
 				
@@ -1507,7 +1508,7 @@ unsigned char ReadFIFO(void)
 	void Send_Packet_my(void)
 	{
 		unsigned int i;
-		unsigned char a,a1,a2,dat;
+		//unsigned char a,a1,a2,dat;
 		SetRFMode_my(RF_STANDBY);
 		
 		write_spi_con(0x1F, ((InitConfigRegsPer[0x1F] & 0xBF)| FIFO_STBY_ACCESS_WRITE));
