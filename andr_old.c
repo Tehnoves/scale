@@ -9,7 +9,7 @@
 //  17.01.15    temper 
 //  20.01.15    cell
 //  23.01.15 структура переменных, 2-€ буферизаци€
-//
+//  19.02.15 переделали температуру
 //
 //
 //***************************************
@@ -55,7 +55,7 @@
 #include <stdlib.h>
 #include <andr.h>
 
-#define Len_ADC_Buf 16   //16  
+#define Len_ADC_Buf 8   //16  
 #define ON              0x01
 #define OFF             0x00 
 #define pervij		    0x00
@@ -97,7 +97,7 @@
 		/* 23 0x17*/ 			0x37, // 2nd byte of Sync word,
 		/* 24 0x18*/ 			0xF1, // 3rd byte of Sync word,
 		/* 25 0x19*/ 			0xC3, // 4th byte of Sync word,
-		/* 26 0x1a*/ 			FC_200 | TXPOWER_13,                                           //0b01110000 
+		/* 26 0x1a*/ 			FC_200 | TXPOWER_8,                                           //0b01110000 
 		/* 27 0x1b*/ 			CLKOUT_OFF | CLKOUT_12800,                                     //0b00000000
 		/* 28 0x1c*/ 			MANCHESTER_OFF | 32,										       //0b00000010
 		/* 29 0x1d*/ 			NODEADRS_VALUE,                                                //0
@@ -132,7 +132,7 @@
 		/* 23 0x17*/ 			0x37, // 2nd byte of Sync word,
 		/* 24 0x18*/ 			0xF1, // 3rd byte of Sync word,
 		/* 25 0x19*/ 			0xC3, // 4th byte of Sync word,
-		/* 26 0x1a*/ 			FC_200 | TXPOWER_13,                                           //0b01110000 
+		/* 26 0x1a*/ 			FC_200 | TXPOWER_8,                                           //0b01110000 
 		/* 27 0x1b*/ 			CLKOUT_OFF | CLKOUT_12800,                                     //0b00000000
 		/* 28 0x1c*/ 			MANCHESTER_OFF | 32,										       //0b00000010
 		/* 29 0x1d*/ 			NODEADRS_VALUE,                                                //0
@@ -152,6 +152,8 @@
   sbit reset = P1^0;
   sbit CSCON= P1^2;
   sbit CSDAT = P1^3;
+	sbit P05=P0^5;
+	sbit P04=P0^4;						
   
   /*
    sbit A00 = P0^0; 
@@ -163,13 +165,14 @@
   sbit CSDAT = P1^2;	// ***********   P1.3
  
   */
- 
+ bit startt,flag_pp;
   bit cs_con = 1;
   bit cs_dat = 1;
   bit one,two,flag_int0=0,flag_int1=0;
   bit flag_ocifrovka,flag_ocifrovka_temper;
   bit ADC_buf_overflov;
   bit ADC_buf_empty=1,flag_adc; 
+  bit flag_peredacha,reseach_flag,send_flag,flag_r;
 							
   FLADDR xdata addr; 
   
@@ -190,7 +193,22 @@ union
   unsigned char Byte[4];
 	} xdata ADC;
 
+	
 
+union  Crr
+	
+ {
+   unsigned int Int;
+   unsigned char Char[2];
+   
+ };
+
+union Crr xdata pack2[50];	
+unsigned char my_kol; 	
+	
+	
+	
+	char msek2;
 	unsigned char xdata A2,A3,i,a5,RxPacketLen;
 	unsigned char xdata command,val;
 	unsigned char xdata msek,diagnoz[12];
@@ -202,9 +220,13 @@ union
 	unsigned long xdata ADC_srednee;
 	unsigned long xdata rrez1=0,rrez1_c;
 	unsigned long xdata rrez1_copy=0,rrez2=0,rrez2_copy=0;
-	float xdata temper,temper2;
+	long xdata temper,temper2;										// float
 	unsigned char ind,flag_xvost,flag_zanyato2,flag_zanyato1;
 	char sel;
+	
+	void dia(void);
+	void delay(unsigned char y);
+	 void otv(void);
 	
 void ADC_calculate(void);
 //*************************************************
@@ -291,7 +313,7 @@ struct pac
 	 {
 		 char comm;
 		 long ves;
-		 char temp;
+		 long temp;
 		 float v;
 		
 	 };
@@ -309,7 +331,7 @@ union pack
     CKCON     = 0x41;     // Bit6: T3ML: Timer 3 Low Byte Clock Select
 							// System clock divided by 4
     TH1       = 0x60;
-	TMR3CN    = 0x04;
+//	TMR3CN    = 0x04;
 //	TR3 = 1;
 }
 /*
@@ -370,7 +392,7 @@ void ADC_Init()
 						
 						
    // ADC0MUX   = 0x58;    	   // тензодатчик 
-	  ADC0MUX   = 0x58;     // датчик темпера    0xF8
+	  ADC0MUX   = 0x78;     // датчик темпера    0xF8
 		
 		
 		
@@ -492,8 +514,8 @@ void init_all(void)
 						//buf1_doubl = 0;   // флаг буфера
 						//buf2_doubl = 0;	  // флаг буфера
 						//Switch = RXD;	  // 485 на прием
-		temper =0.0;
-		temper2 = 0.0;
+		temper =0;				// 0.0
+		temper2 = 0;			// 0.0
    		ADC0MD=0x81;	  // 7бит вкл/откл ј÷ѕ 1бит уалибровка
   						
 	}	
@@ -516,6 +538,9 @@ void Init_Device(void)
 	one = 0;
 	two = 0;
 	msek = 0;
+	msek2 = 0;
+	cell_long=0;
+	cell_long2 = 0;
 	
 		
 	
@@ -530,6 +555,13 @@ void Init_Device(void)
 	_nop_();
 	 TR2 = 0;
 	init_all();
+	reseach_flag = 0;
+		send_flag = 0;	
+		flag_r = 0;	
+		flag_peredacha = 0;
+		startt = 0;
+		flag_pp = 0;
+		msek = 0;
 	}
 
 //******************************
@@ -550,8 +582,8 @@ void ADC_calculate(void)
    	ADC.Byte[1]=ADC0H;
    	ADC.Byte[2]=ADC0M;
    	ADC.Byte[3]=ADC0L;
-	flag_adc = 1;
-
+	flag_adc = 1;    // оцифровка произошла
+	
 
 	}
 	
@@ -673,10 +705,12 @@ void di_(void)
 					}
 					SetRFMode_my(RF_RECEIVER);
 	}
+#ifdef otl		
+		
 
 	void dia(void)
 				{
-					unsigned char a;
+					//unsigned char a;
 					diagnoz[0] = read_spi_con(0x0); 	
 					diagnoz[1] = read_spi_con(0x0d); 
 					diagnoz[2] = read_spi_con(0x0e); 
@@ -688,10 +722,10 @@ void di_(void)
 					diagnoz[8] = read_spi_con(0x1e);
 				   diagnoz[9] = read_spi_con(0x05);
 				    diagnoz[10] = read_spi_con(0x1f);
-					a=0;
+					//a=0;
 											//	di_();
 				}
-
+#endif	
 	void init_TX(void)
 			{	unsigned char i;
 			for(i = 0;i <32;i++)
@@ -708,20 +742,26 @@ void di_(void)
 	void Send_Packet_my(void)
 	{
 		unsigned int i;
-		unsigned char a,a1,a2,dat;
+		//unsigned char a,a1,a2,dat;
 		SetRFMode_my(RF_STANDBY);
 		
 		write_spi_con(0x1F, ((InitConfigRegsPer[0x1F] & 0xBF)| FIFO_STBY_ACCESS_WRITE));
 		write_spi_con(0x0D, (InitConfigRegsPer[0x0D] | IRQ1_FIFO_OVERRUN_CLEAR ));
 		write_spi_con(0x0E, ((InitConfigRegsPer[0x0E]) | 0x02));
 		write_spi_con(0x16, 0x97);	//на передачу
+#ifdef otl		
 		dia();
+#endif	
 		//WriteFIFO(TxPacketLen+1);
 		SetRFMode_my(RF_STANDBY);
 		//WriteFIFO(16);	//Node_adrs
 		WriteFIFO(0x23);
 		init_RX();
-		init_TX();
+		packet.var.comm = 3;	
+			packet.var.v = 0.0;
+			for (i =0; i < sizeof(packet);i++)
+		        TxPacket[i] = packet.Byte[i];   // ??????
+	//	init_TX();
 		for(i=0; i< 24; i++)
 		{
 		WriteFIFO(TxPacket[i]);
@@ -731,33 +771,37 @@ void di_(void)
 			_nop_();
 			_nop_();
 		}
-/*
-		a1 =read_spi_con(0x1f); 
-		write_spi_con(0x1F,0x40);
-		a2 =read_spi_con(0x1f); 
-			SetRFMode_my(RF_STANDBY);
-		a= 0;
-			while (a<32)
-					{
-						dat = ReadFIFO();
-						RxPacket[a] = dat;	
-						a++;
-					}
-		write_spi_con(0x1F,a1);
+								/*
+										a1 =read_spi_con(0x1f); 
+										write_spi_con(0x1F,0x40);
+										a2 =read_spi_con(0x1f); 
+											SetRFMode_my(RF_STANDBY);
+										a= 0;
+											while (a<32)
+													{
+														dat = ReadFIFO();
+														RxPacket[a] = dat;	
+														a++;
+													}
+										write_spi_con(0x1F,a1);
 
-*/
+								*/
 
-	//	INTCONbits.GIE = 0;    //?
-		//до этого момента на ноге прерывани€ 0
+									//	INTCONbits.GIE = 0;    //?
+										//до этого момента на ноге прерывани€ 0
 		SetRFMode_my(RF_TRANSMITTER);
+#ifdef otl		
 		dia();
-		for(i=0;i<255;i++)
-		{
-	_nop_();_nop_();_nop_();_nop_();
-	_nop_();_nop_();_nop_();_nop_();
-		}
-
-	while(!(flag_int1));
+#endif	
+	delay(150);
+		
+	send_flag = 1;
+	}
+	
+void Send_Packet(void)	
+{
+		unsigned char i;
+	//while(!(flag_int1));
 		flag_int1 = 0;
 	//здесь должно на ноге irq1 по€витьс€ лог 1
 	//     IT01CF    = 0xFE;
@@ -774,88 +818,110 @@ void di_(void)
 		}
 
 	//	INTCONbits.GIE = 1;   //?
+#ifdef otl		
 		dia();
+#endif	
 		
 		
-		write_spi_con(0x16, 0x68);
+	//	write_spi_con(0x16, 0x68);
 		SetRFMode_my(RF_STANDBY);	//rfmode = ресивер
 		//Reset FIFO  очистить буфер после передачи
 		i = read_spi_con(REG_IRQPARAM0);
 		write_spi_con(REG_IRQPARAM0, (i | 0x01));
-
+			send_flag = 0;
 	}	
 
-	/*	
-void ReceiveFrame()
-{
-	unsigned char data, node_adrs;
-	unsigned char i = 0;
-	while(!(flag_int1));
-		{
-		RxPacketLen = ReadFIFO();	
-		flag_int0 = 0;
-		node_adrs = ReadFIFO();
-		RxPacketLen = (RxPacketLen-1);
+														/*	
+													void ReceiveFrame()
+													{
+														unsigned char data, node_adrs;
+														unsigned char i = 0;
+														while(!(flag_int1));
+															{
+															RxPacketLen = ReadFIFO();	
+															flag_int0 = 0;
+															node_adrs = ReadFIFO();
+															RxPacketLen = (RxPacketLen-1);
 
-		while(RxPacketLen--)
-			{
-			flag_int0 = 0;
-			data = ReadFIFO();
-			RxPacket[i] = data;
-			i++;
-			};
-		RxPacketLen = i;
-		}	
-	flag_int1 = 0;
+															while(RxPacketLen--)
+																{
+																flag_int0 = 0;
+																data = ReadFIFO();
+																RxPacket[i] = data;
+																i++;
+																};
+															RxPacketLen = i;
+															}	
+														flag_int1 = 0;
 
-	//hasPacket = TRUE;
-	//Reset FIFO
-	i = RegisterRead(REG_IRQPARAM0);
-	RegisterSet(REG_IRQPARAM0, (i | 0x01));
-}
-*/		
-unsigned char ReceiveFrame_my(void)
+														//hasPacket = TRUE;
+														//Reset FIFO
+														i = RegisterRead(REG_IRQPARAM0);
+														RegisterSet(REG_IRQPARAM0, (i | 0x01));
+													}
+													*/		
+void ReceiveFrame_my(void)
 		{
-			unsigned char  dat, node_adrs;
-			unsigned char i = 0;
+			
 				SetRFMode_my(RF_STANDBY);
 			///////////////////////
 			write_spi_con(0x1F, ((InitConfigRegsPri[0x1F] & 0xBF)| FIFO_STBY_ACCESS_READ)|FIFO_AUTOCLR_OFF);// 
 			write_spi_con(0x0D, (InitConfigRegsPri[0x0D] | IRQ1_FIFO_OVERRUN_CLEAR ));
 			write_spi_con(0x0E, ((InitConfigRegsPri[0x0E]) | 0x02));
-		//	write_spi_con(0x16, 0x97);		   // 0x97
+			write_spi_con(0x16, 0x97);		   // 0x97
 			SetRFMode_my(RF_RECEIVER);
 			init_RX();
-			dia();
+				reseach_flag = 1;
+#ifdef otl		
+		dia();
+#endif	
 			//////////////////////////
+		}
+ unsigned char reseach(void)
+	{		
+	unsigned char  dat, node_adrs,ik;
 			
-			while(!(flag_int1));
+		delay(20);
+		//	while(!(flag_int1));
 		//	dia();
 		//	dia();
-			dia();
+#ifdef otl		
+		dia();
+#endif	
 				SetRFMode_my(RF_STANDBY);
 			RxPacketLen = 32;  // ReadFIFO();	
 			flag_int0 = 0;
 			node_adrs = ReadFIFO();
 			RxPacketLen = (RxPacketLen-1);
 			
-	i = 0;
+	ik = 0;
 			while(RxPacketLen--)
 			{
 			flag_int0 = 0;
 			dat = ReadFIFO();
-			RxPacket[i] = dat;
-			i++;
+			RxPacket[ik] = dat;
+			ik++;
 			};
-		RxPacketLen = i;
-	dia();		
+		RxPacketLen = ik;
+#ifdef otl		
+		dia();
+#endif		
 	flag_int1 = 0;
-
-			write_spi_con(0x0D, (0x0a));	//перезагрузить фифо
+pack2[my_kol].Char[1]= RxPacket[0];
+	pack2[my_kol].Char[0]  = RxPacket[1];
+	my_kol++;
+	if  (my_kol>= 50)
+	{
+		 for (my_kol=0;my_kol< 50;my_kol++)
+		pack2[my_kol].Int = 1;
+		my_kol=0;
+	}
+			//write_spi_con(0x0D, (0x0a));	//перезагрузить фифо
 				i = read_spi_con(REG_IRQPARAM0);
 		        write_spi_con(REG_IRQPARAM0, (i | 0x01));
 			
-			
+			reseach_flag = 0;
+			send_flag = 0;
 			return node_adrs;
 		}
 	
@@ -916,156 +982,173 @@ union pack
 	//   команда, вес, температура, напр€жение, ведущее число, уровень нул€
     //   "3,1234567.23,12.34";
 
-#ifdef otl														
+//#ifdef otl														
 														
  void otv(void)
 		{
-			char ii;
-			if (flag_adc)
+		//	char ii;
+			if (flag_adc)      // оцифровка произошла нужно обработать
 			{
 					if (!(ind%0xf))
-			{ //sel = temperatura;
-			 if (flag_ocifrovka_temper == pervij)
-										//if (sel== temperatura)
-											{ temper = ((float)(ADC.Long)*2450/0x7fffff-54.300)/.205 ;}
-										//else
-										//	{ cell_long = ADC_srednee/16;}
-									else
-									//	if (sel== temperatura)
-											{ temper2 = ((float)(ADC.Long)*2450/0x7fffff-54.300)/.205 ;
-											}
-										//else
-										//	{cell_long2 = ADC_srednee/16;}
-										
-									 flag_ocifrovka_temper = ~flag_ocifrovka_temper;
-			}
-			else  
-			{ //sel =  cell;
-			  
-			
-	
-	
-	
-	
-   	if(ADC_buf_empty)						// флаг пустого буфера
-       {									// Time_request = 0;
-						 start_ADC_buf 		= ADC_buf;		// начало буфера
-						 end_ADC_buf 		= ADC_buf;		// конец буфера
-						 end_ADC_buf[0]		= ADC.Long;
-						 ADC_buf_empty		= OFF;
-						 ADC_buf_overflov	= OFF;			// начальна€ инициализаци€
-						 ADC_srednee		= 0;
-       }
-    else
-       {
-					 if(ADC_buf_overflov)
-							{
-								   ADC_srednee -= start_ADC_buf[0];	         // зачем ?
-								   ADC_srednee += ADC.Long;	    // текущее значение ј÷ѕ
-																// sred = ADC_srednee;
-																//  sred/=Len_ADC_Buf;		  // 16 значений в буфере
-								
-									
-									if (flag_ocifrovka == pervij)
-										//if (sel== temperatura)
-										//	{ temper = ((float)(ADC_srednee/16)*2450/0x7fffff-54.300)/.205 ;}
-										//else
-											{ cell_long = ADC_srednee/16;
-										//ves =(cell_long-2481000);		
-										//ves =500*ves/29600;
-										ves =(cell_long-3528185);		
-										ves =ves/84;
-}
-									else
-										//if (sel== temperatura)
-										//	{ temper2 = ((float)(ADC_srednee/16)*2450/0x7fffff-54.300)/.205 ;
-										//	}
-										//else
-											{cell_long2 = ADC_srednee/16;
-										//ves2 =(cell_long2-2481000);		
-										//ves2 =500*ves2/29600;
-													ves2 =(cell_long2-3528185);		
-										ves2 =ves2/84;}
-										
-									 flag_ocifrovka = ~flag_ocifrovka;
-								  
-								   //  окончание оцифровки
-
-
-
-							}
-					else 
-							ADC_srednee += ADC.Long;
-					if(start_ADC_buf<=end_ADC_buf)
-						{
-							   if(++end_ADC_buf == &ADC_buf[Len_ADC_Buf]) 
-									{end_ADC_buf=ADC_buf;
-									start_ADC_buf++;
-									ADC_buf_overflov=ON;}  
+						{ //sel = temperatura;
+						 if (flag_ocifrovka_temper == pervij)
+																											//if (sel== temperatura)
+														{ temper = 	ADC.Long;}								//  ((float)(ADC.Long)*2450/0x7fffff-54.300)/.205 ;}
+																											//else
+																											//	{ cell_long = ADC_srednee/16;}
+												else
+																									//	if (sel== temperatura)
+														{ temper2 = ADC.Long;                      //((float)(ADC.Long)*2450/0x7fffff-54.300)/.205 ;//
+														}
+																									//else
+																									//	{cell_long2 = ADC_srednee/16;}
+													
+												 flag_ocifrovka_temper = ~flag_ocifrovka_temper;
 						}
-					 else
-						{ 
-								   ++end_ADC_buf;
-								   ++start_ADC_buf;
-								   if(start_ADC_buf >= &ADC_buf[Len_ADC_Buf]) 
-											start_ADC_buf=ADC_buf;
+					
+					else  
+						{ //sel =  cell;
+						  
+						
+				
+				
+				
+				
+							if(ADC_buf_empty)						// флаг пустого буфера
+								   {									// Time_request = 0;
+													 start_ADC_buf 		= ADC_buf;		// начало буфера
+													 end_ADC_buf 		= ADC_buf;		// конец буфера
+													 end_ADC_buf[0]		= ADC.Long;
+													 ADC_buf_empty		= OFF;
+													 ADC_buf_overflov	= OFF;			// начальна€ инициализаци€
+													 ADC_srednee		= 0;
+								   }
+							else
+										{
+											if(ADC_buf_overflov)
+												{
+													   ADC_srednee -= start_ADC_buf[0];	         // зачем ?
+													   ADC_srednee += ADC.Long;	    // текущее значение ј÷ѕ
+																					// sred = ADC_srednee;
+																					//  sred/=Len_ADC_Buf;		  // 16 значений в буфере
+													
+														
+														if (flag_ocifrovka == pervij)
+																										//if (sel== temperatura)
+																										//	{ temper = ((float)(ADC_srednee/16)*2450/0x7fffff-54.300)/.205 ;}
+																										//else
+																{ cell_long = ADC_srednee/8;
+																									//ves =(cell_long-2481000);		
+																									//ves =500*ves/29600;
+																									//ves =(cell_long-3528185);		
+																									//ves =ves/84;
+																}
+														else
+																									//if (sel== temperatura)
+																									//	{ temper2 = ((float)(ADC_srednee/16)*2450/0x7fffff-54.300)/.205 ;
+																									//	}
+																									//else
+																{ cell_long2 = ADC_srednee/8;
+																									//ves2 =(cell_long2-2481000);		
+																									//ves2 =500*ves2/29600;
+																									//			ves2 =(cell_long2-3528185);		
+																									//ves2 =ves2/84;
+																}
+															
+																flag_ocifrovka = ~flag_ocifrovka;
+													  
+													   //  окончание оцифровки
+
+
+
+												}
+											else 
+												ADC_srednee += ADC.Long;
+											if(start_ADC_buf<=end_ADC_buf)
+												{
+													   if(++end_ADC_buf == &ADC_buf[Len_ADC_Buf]) 
+															{end_ADC_buf=ADC_buf;
+															start_ADC_buf++;
+															ADC_buf_overflov=ON;}  
+												}
+											else
+												{ 
+														   ++end_ADC_buf;
+														   ++start_ADC_buf;
+														   if(start_ADC_buf >= &ADC_buf[Len_ADC_Buf]) 
+																	start_ADC_buf=ADC_buf;
+												}
+											end_ADC_buf[0]=ADC.Long;   // 
+										}
 						}
-					 end_ADC_buf[0]=ADC.Long;   // 
-       }
-	   }
-    	ind++;
-			if (!(ind%0xf))
-			{ sel = temperatura;
-			  ADC0CN  |=  (1<<AD0PL);//ADC0CN  |=  (1<<AD0PL);	// бипол€рный
-			  ADC0MUX   = 0xff;    	// датчик температуры  0xf8
-			}
-			else
-			{ sel =  cell;
-			  ADC0MUX   = 0x58; // тензодатчик 78 58  0x58
-				ADC0CN  &= ~(1<<AD0PL);	 	// бипол€рный		 ADC0CN  |=  (1<<AD0PL);			//ADC0CN  &= ~(1<<AD0PL);
-			}   
-			
-			ADC0MD=0x82;		// пока не пришел запрос продолжаем оцифровку	
-		//	PCON=1;
-			flag_adc = 0;
+					ind++;
+					if (!(ind%0xf))
+						{ sel = temperatura;
+						  ADC0CN  |=  (1<<AD0PL);//ADC0CN  |=  (1<<AD0PL);	// бипол€рный
+						  ADC0MUX   = 0xff;    	// датчик температуры  0xf8
+						}
+					else
+						{ sel =  cell;
+						  ADC0MUX   = 0x78; // тензодатчик 78 58  0x58
+							ADC0CN  &= ~(1<<AD0PL);	 	// бипол€рный		 ADC0CN  |=  (1<<AD0PL);			//ADC0CN  &= ~(1<<AD0PL);
+						}   
+				
+					//ADC0MD=0x82;		// пока не пришел запрос продолжаем оцифровку	
+										//	PCON=1;
+					flag_adc = 0;  //  оцифровка обработана   
 			}
 			jta++;
 				EA = 0;
 				if (flag_ocifrovka == pervij)
-					{
-						
-						packet.var.ves=cell_long2;
-					}
+					{packet.var.ves=cell_long2;}
 				else
-					{
-						
-						packet.var.ves=cell_long;
-					}
+					{packet.var.ves=cell_long;}
 				if (flag_ocifrovka_temper == pervij)
-					{
-						packet.var.temp=temper2;
-						
-					}
+					{packet.var.temp=temper2;}
 				else
-					{
-						packet.var.temp = temper;
-						
-					}	
+					{packet.var.temp = temper;}	
 				EA = 1;
-			packet.var.comm = 3;	
-			packet.var.v = 0.0;
-			for (ii =0; ii < sizeof(packet);ii++)
-		        TxPacket[ii] = packet.Byte[ii];   // ??????
-					
-			//TxPacket[i]
+																	//packet.var.comm = 3;	
+																	//packet.var.v = 0.0;
+																	//for (ii =0; ii < sizeof(packet);ii++)
+																	//    TxPacket[ii] = packet.Byte[ii];   // ??????
+																			
+																	//TxPacket[i]
 			
 		}
-#endif		
-		
+//#endif		
+	void delay(unsigned char y)
+		{	
+			unsigned char i,ii;
+			for (ii=0;ii<y;ii++)
+				for(i=0;i<255;i++)
+				{
+					_nop_();_nop_();_nop_();_nop_();
+					_nop_();_nop_();_nop_();_nop_();
+				}
+		}
+
+	
 void main(void)
 	{
 		PCA0MD &= ~0x40; 
+		delay(2);	
+		
+		 for (my_kol=0;my_kol< 50;my_kol++)
+		pack2[my_kol].Int = 1;
+
+//	pack2[1].Char[0]= 0x12;
+
+	//pack2[1].Char[1]  = 0x34;
+	my_kol = 0;
+		
+		
 		Init_Device();
+//	P04=1;
+		
+		P04 =0;
+		P05 = 0;
+//		P05 = 1;
 		flag_int0 = 0;
 		flag_int1 = 0;
 			//while (1)
@@ -1092,7 +1175,9 @@ void main(void)
 					}
 						i = 0;
 								
-						dia();
+#ifdef otl		
+		dia();
+#endif	
 						
 						val = read_spi_con(0x0e);
 						write_spi_con(0x0e,(val | 0x02));
@@ -1106,14 +1191,61 @@ void main(void)
 
 							}
 						while (!(val & 0x02));
-						dia();
+#ifdef otl		
+		dia();
+#endif	
 						
 						SetRFMode_my(RF_RECEIVER);
+						
+						
+						
+						
+						
 						while (1)
-						{	
-						//	Send_Packet_my();
-							ReceiveFrame_my();
-						i++;
+						{
+							//otv();	
+						if (!flag_r)
+							{
+								if (!reseach_flag)
+								{
+																										//write_spi_con(0x0d,InitConfigRegsPri[0x0d]);
+									//delay(130);																		//write_spi_con(0x0e,InitConfigRegsPri[0x0e]);
+									write_spi_con(0x0d,(IRQ0_RX_STDBY_FIFOEMPTY | IRQ1_RX_STDBY_CRCOK));
+									write_spi_con(0x0e,IRQ1_PLL_LOCK_PIN_ON);
+									ReceiveFrame_my();
+									startt = 1;
+									otv();	
+								}
+								else
+								dia();	
+								if (flag_int1)
+									{
+										reseach();
+										P05=~P05;
+								flag_r =~flag_r;					
+									}
+							}
+						else
+							{
+								if (!send_flag)
+									{
+																										//write_spi_con(0x0d,InitConfigRegsPer[0x0d]);
+																								//write_spi_con(0x0e,InitConfigRegsPer[0x0e]);
+										write_spi_con(0x0d,IRQ1_TX_TXDONE);
+										write_spi_con(0x0e,(IRQ0_TX_START_FIFONOTEMPTY | IRQ1_PLL_LOCK_PIN_ON));
+										Send_Packet_my();
+									
+									}	
+									else
+								if (flag_int1)
+									{Send_Packet();
+										P04=~P04;
+										//	P05=~P05;	
+									flag_r =~flag_r;  }                 
+							}
+				//*********************************
+					
+						
 						}
 			}
 
@@ -1158,6 +1290,25 @@ void main(void)
 		
  
  	}
+	
+	void Timer3_int (void) interrupt INTERRUPT_TIMER3
+	{
+		TMR3CN &= ~0x80; 
+		flag_peredacha = 1;
+			if (startt)
+		{
+			msek2++;
+			if (msek2 > 5)
+			{
+				startt = 0;
+				msek2 = 0;
+				flag_r = 1;
+				
+			reseach_flag = 0;
+			}
+		}		
+	}
+	
 
 	void irq0_int(void) interrupt 0
 	 	{
@@ -1186,13 +1337,8 @@ void main(void)
 		
 			AD0INT =0;	 		// если флаг установлен то преобразование закончено
 								// его нужно сбросить программно
-			//ADC0MD=0x82;		// пока не пришел запрос продолжаем оцифровку			 
+			ADC0MD=0x82;		// пока не пришел запрос продолжаем оцифровку			 
 						 
 							
 		}
 	
-	void Timer3_int (void) interrupt INTERRUPT_TIMER3
-		{
-			TMR3CN &= ~0x80; 
-			//flag_peredacha = 1;
-		}
