@@ -16,18 +16,16 @@
 //  16.02.15 мы в эфире
 //  17.02.15  старт привет - ответ
 //  26.02.15 временные задержки
-//  01.03.15  последний рывок - калибровка                      
+//  01.03.15  последний рывок - калибровка
 //  02.03.15  калибровка готов температура готов, ноль готов ( энергосбережение)
-//  13.03.15  большая чистка    // 13.03.15
-//  09.04.15   sleep, нет связи
-//  18.04.15  The End
+//  13.03.15  большая чистка
 //
 //    начало компоновки и трассировки
 //							НмПВ
 //			2000кг 1кг        20   = 2000
 //			3000кг 1кг        20   = 3000
 //			5000кг 2кг        40   = 2500
-//			10000кг 5кг       100  = 2000    
+//			10000кг 5кг       100  = 2000
 //			15000кг 5кг       100  = 3000
 //			20000кг 10кг      200  = 2000
 //			30000кг 10кг      200  = 3000
@@ -47,13 +45,13 @@
 //
 //
 /////////////////////////////////////
-  
 
+ 
 
-//  Timer0  В И Д Е О А Д А П Т Е Р   
+//  Timer0  В И Д Е О А Д А П Т Е Р 
 //  Timer2   Секундная метка
 //  Timer3   Секундная метка для обрыва связи
-//  Timer1   Мигаем светодиоодом авария и я жив
+//  Timer1   Свободен
 
 //  1. спать  1/10сек
 //  2. поль - спать через 60сек
@@ -61,69 +59,9 @@
 //  4. температура через 10сек
 //  5. 
 
-// 17.03.15 разобраться с otl                **
-// проверить отсутствие связи на аккум       **
-// спать                                     **
-// переход от температуры                    **
-// корректировка температуры                 **
-// калибрануть
-// вернуть основной режим
-//
-//
-// тест индикатора
-// собака
-
-//   28.03.15 
-//   тест на надежность
-//   собака
-//   вернуть мастера          **
-//     сброс температуры      **
-//     калибровка			  **	
-//            запись flash в хвост  ?????????????????????????????????
-//затягивание нуля ========  автгоноль*********************************************************
 
 
 
-//   18.04.150
-//  1. сдуть max713
-//  2. корпуса
-//  3. письмо
-//  4. посылка
-//     4.1 платы
-//     4.2 разъемы
-//     4.3 аккум
-//     4.4 корпуса
-//  5. последняя проверка
-//  6. емкостя по питанию
-//  7. спиртом мыть плату
-//  8. светодиоды
-//  9. увеличить мощнлсть
-
-
-
-									//TSRWF Receiver Wake-up Time — 280 500 µs From FS to RX ready
-									//TSRWS Receiver Wake-up Time — 600 900 µs From Stand-by to RX ready
-
-									//TSTWF Transmitter Wake-up Time — 120 500 µs From FS to TX ready.
-									//TSTWS Transmitter Wake-up Time — 600 900 µs From Stand-by to TX ready.
-
-
-/*
-	-8db	0,158mWt			
-	-5db	0,316mWt			
-	-2db	0,631mWt			
-	0db		1mWt			Ватты = 10^(dBm/10) / 1000
-	3db		2mWt			
-	1db		1,3mWt			
-	4db		2,5mWt			
-	7db		5mWt			
-	10db	10mWt			
-	13db	20mWt			
-
-	
-								20db	100mWt
-*/
-//    PCA0CPH5 = 0x00;  
 #include "compiler_defs.h"
 #include "C8051F310_defs.h"
 #include <stdio.h>
@@ -159,19 +97,17 @@
 //#define otl2
 //#define ot3
 //#define otl
-//#define flash                             
-#define rabota                              // 25.03.15
-#define _wdt				//  05.04.15
-//#define otl4										//  06.04.15  реверсная работа   --- теперь slave
+//#define flash
+
 // Peripheral specific initialization functions,
 // Called from the Init_Device() function
 
 
-//#define diskret 4
+#define diskret 4
 int xdata regen2;
 unsigned int xdata regen1;
 
-bit faza,flag_temper,flag_temper_znak,flag_sleep,start_1_10,flag_1_10,start_sleep,stop_sleep;
+bit faza,flag_temper,flag_temper_znak;
 bit flag_kalibrovka;
 bit left_old,left_new;
 //bit leftchench;  /// ?????
@@ -184,20 +120,14 @@ bit null_old,null_new;   /// ?????
 //bit nullchench;   ////????
 bit flag_sek,flag_sekunda,flag_k,rab;
 bit flag_peredacha,reseach_flag,send_flag,flag_r;
-#ifdef rabota                              // 25.03.15
-bit cviaz,stcv,stcv2,cviaz_flag; 
-volatile unsigned char idata mode;
-unsigned int xdata ms2; 
-volatile int idata ms;
-#endif	
+
+
 
  // bit cs_con = 1;
   bit cs_dat = 1;
   bit one,two,flag_int0=0,flag_int1=0;
-  bit flag_tara,P4;   //// ????????
+  bit flag_tara;   //// ????????
 
- // unsigned char nn=0;
- // bit stop_nn = 1;
 
 unsigned int code baza[9]= {
 		{ 2000},
@@ -224,9 +154,9 @@ unsigned char code dis[10]={
 	};
 	
 unsigned int xdata pr,tmp3;
-unsigned char xdata tmp2,half,k2,selekt,k1,k22,k222,k2222,takt;				//  05.04.15
-char xdata index,cod_test,nex,diskret;
-unsigned int xdata msek,sek,msek2,msek_1_10,msek3;
+unsigned char xdata tmp2,half,k2,selekt,k1,k22,k222;
+char xdata index,cod_test,nex;
+unsigned int xdata msek,sek,msek2;
 ///////////////char xdata xvost[5];
 
 sbit P13 = P1^3;
@@ -246,12 +176,11 @@ sbit P27 = P2^7;
 
 sbit P03=P0^3;
 sbit P05=P0^5;
-sbit P1_INT=P0^7;
 
-sbit right = P3^3;    // температура   P3^3         P3^1  тара       18.04.15
-sbit left  = P3^4;    // спать         P3^4         P3^2  ноль
-sbit tara  = P3^1;    // тара          P3^1         P3^3  тампература
-sbit nul   = P3^2;    // ноль          P3^2         P3^4  спать
+sbit right = P3^1;
+sbit left  = P3^2;
+sbit tara  = P3^3;
+sbit nul   = P3^4;
 
 sbit CSCON= P1^1;
 sbit IRQ0 = P0^6;    
@@ -334,23 +263,23 @@ unsigned char my_kol;
 	
  
 		const char code InitConfigRegsPer[] = {
-		/* 0 */					CHIPMODE_STBYMODE | FREQBAND_915 | VCO_TRIM_00,   //0b00110000   VCO_TRIM_11
-		/* 1 */					MODSEL_OOK | DATAMODE_PACKET | IFGAIN_0 | DATAMODE_BUFFERED | OOKTHRESHTYPE_PEAK,          //0b01101100 
-		/* 2 */					0x0a,  //b`00001001,										  //0b00001001
-		/* 3 */			  		0x13,  //0b00010011,										  //0b00010011	
-		/* 4 */					OOKFLOORTHRESH_VALUE,							  //0b00001100
-		/* 5 */					0x4f,  //0b00001111,                                       //0b00001111 FIFOSIZE_64 | FIFO_THRSHOLD_1
-		/* 6 */					153,
-		/* 7 */					122,
-		/* 8 */					68,
-		/* 9 */					0,//0x74,//,
+		/* 0 */				CHIPMODE_STBYMODE | FREQBAND_915 | VCO_TRIM_00,   //0b00110000
+		/* 1 */				MODSEL_OOK | DATAMODE_PACKET | IFGAIN_0 | DATAMODE_BUFFERED | OOKTHRESHTYPE_PEAK,          //0b01101100 
+		/* 2 */				0x0a,  //b`00001001,										  //0b00001001
+		/* 3 */			   0x13,  //0b00010011,										  //0b00010011	
+		/* 4 */				OOKFLOORTHRESH_VALUE,							  //0b00001100
+		/* 5 */				0x4f,  //0b00001111,                                       //0b00001111 FIFOSIZE_64 | FIFO_THRSHOLD_1
+		/* 6 */				153,
+		/* 7 */				122,
+		/* 8 */				68,
+		/* 9 */				0,
 		/* 10 0x0a*/			0,
 		/* 11 0x0b*/			0,
 		/* 12 0x0c*/			DEF_PARAMP | PA_RAMP_23,						  //0b00111000
 		/* 13 0x0d*/			IRQ1_TX_TXDONE,                                   //0b00001000        **          
 		/* 14 0x0e*/ 			IRQ0_TX_START_FIFONOTEMPTY | IRQ1_PLL_LOCK_PIN_ON,            //0b00010001
 		/* 15 0x0f*/ 			RSSIIRQTHRESH_VALUE,														//0b00000000
-		/* 16 0x10*/ 			PASSIVEFILT_458 | RXFC_FOPLUS100,                                             //0b10100011  **
+		/* 16 0x10*/ 			PASSIVEFILT_378 | RXFC_FOPLUS100,                                             //0b10100011  **
 		/* 17 0x11*/			DEF_RXPARAM1 | FO_100,														  //0b00111000
 		/* 18 0x12*/			DEF_RXPARAM2 | POLYPFILT_ON | SYNC_SIZE_32 | SYNC_ON | SYNC_ERRORS_0,        // 0b10111000  ** 
 		/* 19 0x13*/			DEF_RXPARAM3,                   // 0b00000111                                 //0b00000111  **
@@ -360,9 +289,9 @@ unsigned char my_kol;
 		/* 23 0x17*/ 			0x37, // 2nd byte of Sync word,
 		/* 24 0x18*/ 			0xF1, // 3rd byte of Sync word,
 		/* 25 0x19*/ 			0xC3, // 4th byte of Sync word,
-		/* 26 0x1a*/ 			FC_200 | TXPOWER_13,                                           //0b01110000        TXPOWER_13   TXPOWER_8?????????????????~~~~~~~~~~~~??????????????????
+		/* 26 0x1a*/ 			FC_200 | TXPOWER_8,                                           //0b01110000 
 		/* 27 0x1b*/ 			CLKOUT_OFF | CLKOUT_12800,                                     //0b00000000
-		/* 28 0x1c*/ 			MANCHESTER_OFF | 16,										       //0b00000010 !!!!!!!
+		/* 28 0x1c*/ 			MANCHESTER_OFF | 16,										       //0b00000010
 		/* 29 0x1d*/ 			NODEADRS_VALUE,                                                //0
 		/* 30 0x1e*/ 			PKT_FORMAT_FIXED | PREAMBLE_SIZE_3 | WHITENING_OFF | CRC_ON | ADRSFILT_NONE,  //0b01001000
  		/* 31 0x1f*/ 			FIFO_AUTOCLR_ON | FIFO_STBY_ACCESS_WRITE                      //0b00000000
@@ -408,7 +337,7 @@ unsigned char my_kol;
 	 
 	 
   
-struct cons code vesy[8]  = {    //   vesy[BB.variable.k1][2]   vesy[8].diskreta   vesy[8].half_diskret 
+   struct cons code vesy[8]= {
 		{2000,10,1,0},
 		{3000,20,1,0},
 		{5000,40,2.1},
@@ -425,9 +354,9 @@ struct cons code vesy[8]  = {    //   vesy[BB.variable.k1][2]   vesy[8].diskreta
  unsigned char  idata ii,jj;
  unsigned char idata yt;    ///?????????????????????
 											//unsigned char code shift[8] =  {0x80,0x40,0x20,0x10,0x08,0x04,0x02,0x01};
- unsigned char code codtabl[19]={~0xf6,~0x30,~0xe5,~0xf1,~0x33,~0xd3,~0xd7,~0x70,                              // 25.03.15
+ unsigned char code codtabl[18]={~0xf6,~0x30,~0xe5,~0xf1,~0x33,~0xd3,~0xd7,~0x70,
                                  ~0xf7,~0xf3,~0x02,~0x40,~0x20,~0x10,~0x80,~0x04,
-                                 ~0x01,~0x08,~0x00 };
+                                 ~0x01,~0x08 };
 
  unsigned char  pdata  regen[5];			// = {'1','2','3','4','5'}; //
  
@@ -444,9 +373,7 @@ struct cons code vesy[8]  = {    //   vesy[BB.variable.k1][2]   vesy[8].diskreta
 	 void write_spi_con(unsigned char A1, unsigned char value);
 	void Send_Packet(void);	
     	void 	proc_kalib(void);	
-	void init_read(void);							 
-	float xdata u;		
-	unsigned char	mcparam0_read;							 
+								 
 //*************************************************
 //
 //   Перечень команда
@@ -474,7 +401,7 @@ struct cons code vesy[8]  = {    //   vesy[BB.variable.k1][2]   vesy[8].diskreta
 //
 //  команда,ведущее число, уровень нуля, k1, k2
    //char xdata bu[] ="1, 1234, 1234567, 1, 1";	
-char xdata tm[10];
+ char xdata tm[10];
  int  xdata ves_digit,ves_indik,ves_tara;  // ????????????//
  int xdata vesi;
  int xdata vesi1;
@@ -507,12 +434,8 @@ union pack
 void Timer_Init()
 {
 	
-	TMOD      = 0x00;//0x02;
+	TMOD      = 0x02;
     CKCON     = 0x01;    //  System clock divided by 4
-#ifdef rabota                              // 25.03.15
-    TMOD  |= (1<<4);
-	//CKCON   |= (1<<6);
-#endif		
 	CKCON     |= 0x10;
 	
     TMR2CN    = 0x04;
@@ -525,9 +448,8 @@ void Timer_Init()
 	
     TMR3CN    = 0x04;
 	TR2 = 0; 
-#ifdef rabota	                              // 25.03.15
-	TR1 = 1;
-#endif	
+	
+	
 }
 //____________________________________________________________________________________
 
@@ -536,9 +458,9 @@ void SPI_Init()
 	
 	SPI0CFG   = 0x40;
     SPI0CN    = 0x01;
-    SPI0CKR   =  0x97; //0x79;(100000)	 0x97(100000)	 0x1d(400000)  //  	 0x0e(800000)   0x0b(1000000)// скорость 1мГц
-	IT0 = 0;//1;     0/1  уровень/фронт 
-	IT1 = 0;//1;
+    SPI0CKR   =  0x0b; // 0x1d     0x79;
+	IT0 = 1;
+	IT1 = 1;
 }
 //____________________________________________________________________________________
 
@@ -566,7 +488,7 @@ void Port_IO_Init()
     // P2.2  -  Unassigned,  Push-Pull,  Digital
     // P2.3  -  Unassigned,  Push-Pull,  Digital
 
-    P0MDOUT   = 0x3D;
+    P0MDOUT   = 0xfD;
     P1MDOUT   = 0xFF;
     P2MDOUT   = 0xFF;
     P3MDOUT   = 0x01;
@@ -592,7 +514,7 @@ void Port_IO_Init()
 		IT01CF    = 0xfe;
 							
 		//IT01CF    = 0x76;
-		IE        = 0xea;//0xef; //0xE7;   //E7  E2        25.030.15
+		IE        = 0xE7;   //E7  E2
 
 	}
 //____________________________________________________________________________________	
@@ -612,12 +534,6 @@ void Port_IO_Init()
 // Initialization function for device,
 // Call Init_Device() from your main program
 //____________________________________________________________________________________
-void null_x(char q)
-{null_5 = q;
-			null_4 = q;
-			null_3 = q;
-			null_2 = q;
-}
 
 
 	void Init_Device(void)
@@ -625,57 +541,13 @@ void null_x(char q)
 	
 	jj= 1;
 	ii = 0;
-
+    Timer_Init();
     SPI_Init();
     Port_IO_Init();
     Oscillator_Init();
-	    Timer_Init();	
-		start_timer0();
-	
-	 Interrupts_Init();
-	addr=0x1c00;  
-#ifdef flash		
-		init_flash();	
-		init_write();
-#endif		
-		init_read();	
-										
-		packet.var.ves = AA.co1.avtonol;
-		diskret =  vesy[BB.variable.k1].diskreta;
-		packet.var.temp = 20;
-		half = vesy[BB.variable.k1].half_diskret;
-	///	packet.var.v = 12.34;						//   28.03.15
-		packet.var.comm= 3;
-		ves_digit= BB.variable.diskr; 
-	
-		
+	start_timer0();
 
-	P03=0;
-	P05=0;
-		#ifdef rabota 
-   
-		
-	cviaz = 0;                                    // 25.03.15
-	cviaz_flag = 1;
-	stcv = 0;
-		ms2 = 0;
-		if (!flag_sleep)						// 09.04.15
-		{
-	mode = 1;   
-
-	ms = 0;
-		}						// 09.04.15
-	// 25.03.15
-	rab = 0;
-						null_x(0);
-						//null_5 = 0;
-						//null_4 = 0;
-						//null_3 = 0;
-						//null_2 = 0;
-					//	cod_test = 10+4;
-						
-#endif
-			
+    Interrupts_Init();
 	} 
 //____________________________________________________________________________________
 
@@ -728,36 +600,7 @@ void null_x(char q)
 		}
 //____________________________________________________________________________________
 
-						//   28.03.15						//   28.03.15						//   28.03.15						//   28.03.15						//   28.03.15
 
-void k100000(void)
-	{			
-		null_5 = ((regen1 % 100000/10000) != 0);	
-					
-	}
-void k10000(void)
-	{		
-		null_4 = ((regen1 % 10000/1000) != 0);	
-					
-			}
-void k1000(void)
-	{			
-		null_3 = ((regen1 % 1000/100) != 0);	
-					
-	}
-void k100(void)
-	{			
-		null_2 = ((regen1 % 100/10) != 0);	
-					
-	}
-
-///     Program Size: data=21.0 xdata=248 code=6853            //   28.03.15
-////   Program Size: data=21.2 xdata=243 code=6597                  05.04.15
-
-
-
-
-//____________________________________________________________________________________
 	
 	//*****************************
 	//
@@ -771,14 +614,14 @@ void k100(void)
 	void init_flash(void)
 	{
 			AA.co1.cod  = 0x55;	
-			//AA.co1.var.npv  = 20000;
-			//AA.co1.var.nmpv = 100;
-			//AA.co1.var.diskreta = 10;
-			//AA.co1.var.half_diskret = 5;
+			AA.co1.var.npv  = 20000;
+			AA.co1.var.nmpv = 100;
+			AA.co1.var.diskreta = 10;
+			AA.co1.var.half_diskret = 5;
 			AA.co1.vedushee  = 1234;	//  калибровочный вес
 			AA.co1.avtonol  = 11110;	    //  перезаписываемый автоноль
 		
-			BB.variable.k1 = 0;     // выбираем грузопдъемность весов    04.04.15     
+			BB.variable.k1 = 0;
 			BB.variable.k2 = 0;
 			BB.variable.diskr = 100; 
 			    //   0x27616d-0x2719ed)/500; 
@@ -798,31 +641,14 @@ void k100(void)
 	//**********************
 	
 	
-		 int zn( int izm)
+	 int zn(unsigned int izm)
 		{
-		 char tmp,t1;
-            EA = 0;		 										// 06.04.15
-			tmp = izm % diskret ;   							// 04.04.15   diskret  vesy[8].diskreta   vesy[8].half_diskret 
-			EA = 1;												// 06.04.15
-			if (izm>= 0)
-				t1 = diskret;
-			else
-				t1 = -diskret;
-				{
-					if  (abs(tmp) > half)   								                     // 04.04.15    half  vesy[BB.variable.k1].half_diskret 
-						return ( izm + t1 - tmp);   				// 04.04.15  diskret
-					else 
-						 return	( izm -  tmp);                // 04.04.15        6506       
-				}
-			   /*
-			else
-				{
-					 if (abs(tmp) >= half)
-					 	return (izm-tmp-diskret);
-					 else	
-					 	return ( izm -tmp);
-				}	 */
-
+		unsigned char tmp;
+			tmp = izm % diskret;
+			if  (tmp >= half)
+				return ( izm + diskret - tmp);
+			else 
+				 return	( izm - tmp); 
 		}
 //____________________________________________________________________________________
 
@@ -845,17 +671,16 @@ void k100(void)
 	void test(void)
 		{
 			char i,ii;
-           faza =  kalibruensia;
-		   null_x(1);
-															//null_5 = 1;
-															//null_4 = 1;
-															//null_3 = 1;
-															//null_2 = 1;
+           faza =  kalibruensia;		   
+			null_5 = 1;
+			null_4 = 1;
+			null_3 = 1;
+			null_2 = 1;
 			rab = 0;
 			for (i=0;i<8;i++)
 					{
 						cod_test = i+10;
-															//start(i);//
+						//start(i);//
 						for  (ii  =0;ii<50; ii++)
 						delay(200);
 					
@@ -872,22 +697,21 @@ void k100(void)
 			if (!flag_k)
 				{
 				///////////	sprintf(regen,"%0.5u",vesi);   ?????????????
-				null_x(1);
-												//	null_5 = 1;
-												//	null_4 = 1;
-												//	null_3 = 1;
-												//	null_2 = 1;
-												//	null_5 = ((regen1 % 100000/10000) != 0);
-													//null_5 = (regen[0] != 0');
+					null_5 = 1;
+					null_4 = 1;
+					null_3 = 1;
+					null_2 = 1;
+					null_5 = ((regen1 % 100000/10000) != 0);
+					//null_5 = (regen[0] != 0');
 					if (!null_5)
-						k10000();			//		null_4 = ((regen1  % 10000 / 1000) != 0);
-													//null_4 = (regen[1] != '0');
+						null_4 = ((regen1  % 10000 / 1000) != 0);
+						//null_4 = (regen[1] != '0');
 					if (!null_4)
-						k1000();     //   null_3 = ((regen1 % 1000/ 100 ) != 0);
-												//null_3 = (regen[2] != '0');
+						null_3 = ((regen1 % 1000/ 100 ) != 0);
+						//null_3 = (regen[2] != '0');
 					if (!null_3)
-							k100();    //  null_2 = ((regen1 %100 /10) != 0);
-												//null_2 = (regen[3] != '0');
+							null_2 = ((regen1 %100 /10) != 0);
+						//null_2 = (regen[3] != '0');
 					
 					
 										
@@ -908,13 +732,12 @@ void k100(void)
 	
 	void copi_null(void)
 	{
-										//	char i;
-	null_x(1);
-										//null_5 = 1;
-										//null_4 = 1;
-										//null_3 = 1;
-										//null_2 = 1;
-																			//for(i=0;i<5;i++)
+	//	char i;
+			null_5 = 1;
+			null_4 = 1;
+			null_3 = 1;
+			null_2 = 1;
+												//for(i=0;i<5;i++)
 			{
 				regen1 =baza[8];
 					
@@ -937,14 +760,13 @@ void k100(void)
 	
 		a = (BB.variable.k2+1)/10;
 		regen1 = a*baza[BB.variable.k1];  
-		null_x(1);
-												//null_5 = 1;
-												//null_4 = 1;
-												//null_3 = 1;
-												//null_2 = 1;
-		k100000(); //null_5 = ((regen1 % 100000/10000) != 0);						//   28.03.15
+		null_5 = 1;
+		null_4 = 1;
+		null_3 = 1;
+		null_2 = 1;
+		null_5 = ((regen1 % 100000/10000) != 0);
 		if (!null_5)
-			k10000();      //     null_4 = ((regen1  % 10000 / 1000) != 0);
+			null_4 = ((regen1  % 10000 / 1000) != 0);
 			
 	}
 	//____________________________________________________________________________________
@@ -958,13 +780,13 @@ void k100(void)
 	
 	void copi(char nu)
 	{
-		null_x(1);
-													//null_5 = 1;
-													//null_4 = 1;
-													//null_3 = 1;
-													//null_2 = 1;
+		
+			null_5 = 1;
+			null_4 = 1;
+			null_3 = 1;
+			null_2 = 1;
 			regen1 =baza[nu];
-			k100000(); //null_5 = ((regen1 % 100000/10000) != 0);						//   28.03.15
+			null_5 = ((regen1 % 100000/10000) != 0);
 	}
 //____________________________________________________________________________________
 
@@ -982,7 +804,7 @@ void k100(void)
 			null_3 = 1;
 			null_2 = 1;
 			regen1 =dis[nu];
-			k1000();     //   null_3 = ((regen1 % 1000/ 100 ) != 0);
+			null_3 = ((regen1 % 1000/ 100 ) != 0);
 
 	}
 //____________________________________________________________________________________
@@ -996,7 +818,7 @@ void k100(void)
 						flag_sek = 0;
 						regen1  = sek;
 					
-							k100();    //  null_2 = ((regen1 %100 /10) != 0);
+							null_2 = ((regen1 %100 /10) != 0);
 					
 					}		
 			
@@ -1015,12 +837,7 @@ void k100(void)
 	
 	void init_param(void)
 		{
-			start_sleep = 0;
-			stop_sleep = 0;
-			msek3 = 0;
-			flag_1_10=1;
 			flag_temper = 0;
-			flag_sleep = 0;
 		flag_kalibrovka= 0;	
 		faza = vzveshivarm;
 		reseach_flag = 0;
@@ -1058,31 +875,29 @@ void k100(void)
 	_nop_();
 	msek =0 ;
 	 TR2 = 0;
-	// EX0 =1;
-	 //EX1=1;
-											/*
-												addr=0x1c00;  
-										#ifdef flash		
-												init_flash();	
-												init_write();
-										#endif		
-												init_read();	
-																				
-												packet.var.ves = AA.co1.avtonol;
-												packet.var.temp = 20;
-											///	packet.var.v = 12.34;						//   28.03.15
-												packet.var.comm= 3;
-												ves_digit= BB.variable.diskr; 
-														*/			
+	
+		addr=0x1c00;  
+#ifdef flash		
+		init_flash();	
+		init_write();
+#endif		
+		init_read();	
+										
+		packet.var.ves = AA.co1.avtonol;
+		packet.var.temp = 20;
+		packet.var.v = 12.34;
+		packet.var.comm= 3;
+		ves_digit= BB.variable.diskr; 
+							
 							
 		left_old=1;left_new=1;
-										//leftchench=0;
+		//leftchench=0;
 		right_old=1;right_new=1;
-										//rightchench=0;
+		//rightchench=0;
 		tara_old=1;tara_new=1;
-										//tarachench=0;
+		//tarachench=0;
 		null_old=1;null_new=1;
-										//nullchench=0;
+		//nullchench=0;
 		index = 0;
 		k2 = 0;
 		selekt = 1;
@@ -1090,14 +905,6 @@ void k100(void)
 		flag_k =0;
 		ves_tara = 0;
 		flag_tara = 0;
-		#ifdef _wdt 		
-				PCA0MD    = 0x00;				//  05.04.15
-				PCA0CPL4  = 0x9E;
-				PCA0MD    |= 0x40;
-	#endif	
-	//	while (1)	
-	//				 PCA0CPH4 = 0x00; 	
-		
 		}	
 //____________________________________________________________________________________		
 		
@@ -1152,20 +959,20 @@ void k100(void)
 		
 	void kalib_1(void)
 	{
-														//float u;
+		float u;
 		switch (k2)
 						{
-							case 0:                   	// выбираем грузопдъемность весов
+							case 0:                   // выбираем грузопдъемность весов
 																//init_read();
-								index = BB.variable.k1;    // выбираем грузопдъемность весов   // 04.04.15
-								k1 =  7;                   // ???????????????????/   // 04.04.15
+								index = BB.variable.k1;
+								k1 =  7;
 								copi(index);
 								break;
 							case 1:                   // каким % будем грузить
 							    BB.variable.k1= index;
 																//init_write();
 														//		init_read();
-								index = BB.variable.k2;     // каким % будем грузить   // 04.04.15
+								index = BB.variable.k2;
 								k1 =9;
 								copi_dis(index);
 								selekt = 2;
@@ -1179,14 +986,13 @@ void k100(void)
 								break;
 							case 3:                     // калибровка нулевого веса  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!    пропись   !!!!!!!!!!!!!!!!!!
 							    flag_kalibrovka = 1; 
-								null_x(0);
-															//null_5 = 0;
-															//null_4 = 0;
-															//null_3 = 0;
-															//null_2 = 0;
+								null_5 = 0;
+								null_4 = 0;
+								null_3 = 0;
+								null_2 = 0;
 								flag_sekunda = 1;
-								proc_kalib_summa=0;
-								proc_kalib_i =0;
+							proc_kalib_summa=0;
+							proc_kalib_i =0;
 								TR2 = 1;
 								break;
 							case 4:                   // выводим вес калибровки
@@ -1199,14 +1005,13 @@ void k100(void)
 							case 5:                 // калебруем нагруженную платформу   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!  пропись !!!!!!!!!!!!!!!
 							// запомнить ведущее число
 							    flag_kalibrovka = 1;
-								proc_kalib_summa=0;
-								proc_kalib_i =0;
+									proc_kalib_summa=0;
+							proc_kalib_i =0;
 								TR2 = 1;
-								null_x(0);
-														//null_5 = 0;
-														//null_4 = 0;
-														//null_3 = 0;
-														//null_2 = 0;
+								null_5 = 0;
+								null_4 = 0;
+								null_3 = 0;
+								null_2 = 0;
 								flag_sekunda = 1;
 								break;
 							case 6:                   // конец калибровки
@@ -1220,15 +1025,6 @@ void k100(void)
 																	//		init_read();
 								ves_digit = BB.variable.diskr;
 								faza = vzveshivarm;
-							
-								diskret =  vesy[BB.variable.k1].diskreta;
-		
-								half = vesy[BB.variable.k1].half_diskret;
-								
-								
-								
-								
-								//ves_digit= BB.variable.diskr; 
 								flag_k = 0;
 								// это конец калибровки
 								break;
@@ -1236,15 +1032,11 @@ void k100(void)
 	}
 //____________________________________________________________________________________
 
-	void avto(void)				//  05.04.15
-	{
-		 AA.co1.avtonol = packet.var.ves;
-		 init_write();
-	}				//  05.04.15
+	
 
 	void tara_proc(void)
 	{
-			tara_new = tara;					// тара
+			tara_new = tara;
 			if (tara_old != tara_new) 
 				{
 					if (!tara_new)
@@ -1258,7 +1050,7 @@ void k100(void)
 						tara_old = tara_new;
 						
 					}	
-			right_new = right;				// измерение температуры
+			right_new = right;
 			if (right_old != right_new) 
 				{
 					if (!right_new)
@@ -1272,27 +1064,6 @@ void k100(void)
 						right_old = right_new;
 						
 					}	
-			left_new = left;				// спать 
-			if (left_old != left_new) 
-				{
-					if (!left_new)
-						{
-							k2222++;         //7
-							if (k2222%2 == 0)
-								
-								flag_sleep = 1;
-								
-							else 
-								flag_sleep  = 0;
-						}
-						left_old = left_new;
-						
-					}	
-			if ((flag_temper)	& (flag_1_10))		
-				{
-					flag_1_10=0;
-					start_1_10=1;
-				}
 			null_new = nul;
 			if (null_old != null_new) 
 				{
@@ -1302,9 +1073,8 @@ void k100(void)
 							if (k222%2 == 0)
 								//
 								{
-									avto();				//  05.04.15
-							      //AA.co1.avtonol = packet.var.ves;
-								  //init_write();
+							      AA.co1.avtonol = packet.var.ves;
+								  init_write();
 								}
 						}
 						null_old = null_new;
@@ -1340,104 +1110,58 @@ void k100(void)
 	///  
 //____________________________________________________________________________________
 
-		void avto2(void)   				//  05.04.15
-		{
-			
-									//rab = 1;   //    
-																		//sred = packet.var.ves-0x2719ed; //
-									sred = (((packet.var.ves-AA.co1.avtonol)));
-									sred = ((sred)/ves_digit );
-									vesi1 = sred;
-																		//vesi1 = (int)(packet.var.ves/ves_digit);
-									vesi = zn(vesi1);
-																		//regen1 = zn(vesi1);
-									//tara_proc();
-									
-																		//ves_indik = vesi-ves_tara;
-									regen2 = vesi-ves_tara;
-																		//	regen2 = 123;
-									regen1 = abs(regen2);
-		}
+	
 		void  kuku(void)
 		{
-				//EA = 0;										// 06.04.15
-				//cviaz = 0;
-				if (cviaz)
-					{
-						if(packet.var.ves==0)							//  28.03.15
-									regen1 =0;
-								else
-									{
-											avto2();				//  05.04.15
-											if ((regen1 > 0)&(regen1 < diskret*4)&(ves_tara==0))				//  05.04.15
-													{
-													 AA.co1.avtonol = packet.var.ves;					//  05.04.15
-														avto2();
-													}
-																	//  05.04.15
-									}
-									 if (regen1>100)
-										 _nop_();
-																		 // 
-																			//sprintf(regen,"%0.5u",ves_indik);     5 4 3 2 1   1 0 0 0 0  1 0 0 0 1  0 0 1 0 1
-								   //minus = (regen2 < 0); 	
-
-									minus = (regen2 < 0); 
-									EA = 0;
-								   nex = 5;	
-								  k100000(); // null_5 = ((regen1 % 100000/10000) != 0);                   //						//   28.03.15
-											if ((minus) & (!null_5))
-												nex--;
-												
-									
-									if (!null_5)
-										k10000();      //     null_4 = ((regen1  % 10000 / 1000) != 0);              //
-									else
-										null_4 = 1;
-									  if (((minus) & (!null_4) & nex == 4) )
-											nex--;
-									
-									if ((!null_4)&(!null_5))
-										 k1000();     //   null_3 = ((regen1 % 1000/ 100 ) != 0);               //
-									else null_3 = 1;
-										  if (((minus) & (!null_3) & nex == 3))
-											nex--; 
-									if ((!null_3)&(!null_4)&(!null_5))                        //
-										 k100();    //  null_2 = ((regen1 %100 /10) != 0);
-									else	
-										 null_2 =1;
-										 if (((minus) & (!null_2) & nex == 2))	
-											nex--; 
-									EA = 1;	
-										
-										
-									if (packet.var.temp==0)
-										temper = 0;
-									else
-										{	
-											EA = 0;							//  28.03.15										// 06.04.15
-											temper =  ((float)(packet.var.temp)*2450/0x7fffff-54.300)/.205 -20; 
-											EA = 1;	
-										}						//  28.03.15										// 06.04.15
-									//temper3 = 13;
-									if (temper< 0)							//  28.03.15
-										flag_temper_znak = 1;
-									else
-										flag_temper_znak = 0;
-									temper2 = abs(temper);  //(char)temper;
-									rab = 1; 
-					}
-			  else
-				  {
-						//rab = 0;
-						null_x(0);
-														//null_5 = 0;
-														//null_4 = 0;
-														//null_3 = 0;
-														//null_2 = 0;
-						cod_test = 10+4;
-				  }
-				//EA = 1;	 										// 06.04.15
+				EA = 0;
+													//sred = packet.var.ves-0x2719ed; //
+				sred = (((packet.var.ves-AA.co1.avtonol)));
+				sred = ((sred)/ves_digit );
+				vesi1 = sred;
+													//vesi1 = (int)(packet.var.ves/ves_digit);
+				vesi = zn(vesi1);
+													//regen1 = zn(vesi1);
+				tara_proc();
+													//ves_indik = vesi-ves_tara;
+				regen2 = vesi-ves_tara;
+													//	regen2 = 123;
+				regen1 = abs(regen2);
+					                                 // 
+														//sprintf(regen,"%0.5u",ves_indik);     5 4 3 2 1   1 0 0 0 0  1 0 0 0 1  0 0 1 0 1
+			   minus = (regen2 < 0); 									
+			   nex = 5;	
+			   null_5 = ((regen1 % 100000/10000) != 0);                   //
+						if ((minus) & (!null_5))
+							nex--;
+							
+				
+				if (!null_5)
+					null_4 = ((regen1  % 10000 / 1000) != 0);              //
+				else
+					null_4 = 1;
+				  if (((minus) & (!null_4) & nex == 4) )
+					    nex--;
+				
+				if ((!null_4)&(!null_5))
+					 null_3 = ((regen1 % 1000/ 100 ) != 0);               //
+				else null_3 = 1;
+				      if (((minus) & (!null_3) & nex == 3))
+					    nex--; 
+				if ((!null_3)&(!null_4)&(!null_5))                        //
+					 null_2 = ((regen1 %100 /10) != 0);
+				else	
+					 null_2 =1;
+				     if (((minus) & (!null_2) & nex == 2))
+					    nex--; 
+				
+				temper =  ((float)(packet.var.temp)*2450/0x7fffff-54.300)/.205 ; 
+				temper3 = 13;
+				if (temper3< 0)
+					flag_temper_znak = 1;
+				else
+					flag_temper_znak = 0;
+				temper2 = abs(temper3);  //(char)temper;
+				EA = 1;	 
 }
 //____________________________________________________________________________________
 
@@ -1457,151 +1181,63 @@ void k100(void)
 		
 		}
 //____________________________________________________________________________________	
-//
-//  reseach_flag == 0  подготовка приема    
-//									= 0  при тайм ауте приема
-//									= 0  после приема
-//  reseach_flag == 1  прием 
-//									=  1 после подготовки приема
-//
-//
-//
-//
 	
 	
 	void vzv(void)
-	{		tara_proc();
-			//if (flag_sleep)
-				//dia();
+	{
 			if (!flag_r)
 				{
 					if (!reseach_flag)
 					{
 						
 						write_spi_con(0x0d,(IRQ0_RX_STDBY_FIFOEMPTY | IRQ1_RX_STDBY_CRCOK));
-						//dia();
 						write_spi_con(0x0e,IRQ1_PLL_LOCK_PIN_ON);
-						//dia();
 						ReceiveFrame_my();
-						//if (reseach_flag == 0)
 						startt = 1;
-						takt = 0;					//  05.04.15
-						stcv2 = 0;
+						
+						
 					}
 					else
-					if ((P1_INT) )  //& stop_nn
+					if (flag_int1)
 						{
 							reseach();
-#ifdef rabota                                                          // 25.03.15
-	msek2 = 0;
-	cviaz = 1;
-	if (!flag_sleep)												// 09.04.15
-		{
-			mode = 1;
-			ms = 0;
-		}						// 09.04.15
-	cviaz_flag = 1;
-	ms2 =0;					// 27.03.15
-	stcv=0;					// 27.03.15
-#endif							
 							if (faza == vzveshivarm )
 								kuku();
 							else 
 								{proc_kalib();}
-							P03=~P03;                               // ????????????????????????????????~~~~~~~~~~~~~~~~~~~~~~~???????????????????????????????
-						    flag_r =   1;  //   ~flag_r;			// прием нрмально ---->   передача 		     // 07.04.15
+							P03=~P03;
+						flag_r =~flag_r;					
 						}
-					else
-					{
-#ifdef otl4							
-						
-						
-						takt++;				//  05.04.15
-						if (takt >256)
-						{reseach_flag=0;				//  05.04.15
-						i = read_spi_con(REG_IRQPARAM0);
-						write_spi_con(REG_IRQPARAM0, (i | 0x01));
-						reseach_flag = 0;
-			send_flag = 0;
-			//flag_r =~flag_r;
-					
-						}
-#endif							
-		//	dia();			
-#ifdef rabota 
-                       // dia();                                 // 25.03.15
-						if (stcv2==0)
-						{stcv = 1;              // 27.03.15
-						ms2 = 0;               // 27.03.15
-						}
-#endif		
-					}
 				}
 				else
 				{
 					if (!send_flag)
 						{
-							if (flag_sleep)
-							{
-								start_sleep = 1;
-								while (!stop_sleep);
-								stop_sleep = 0;
-							}
-							delay(250); // для slave
-							delay(250);
+							delay(50); // для slave
+							
 							write_spi_con(0x0d,IRQ1_TX_TXDONE);
 							write_spi_con(0x0e,(IRQ0_TX_START_FIFONOTEMPTY | IRQ1_PLL_LOCK_PIN_ON));
 							Send_Packet_my();
 						
 						}	
 						else
-					if (P1_INT)
+					if (flag_int1)
 						{Send_Packet();
-						
-							P05=~P05;         //?????????????????????????~~~~~~~~~~~~~~~~~~??????????????????????????????
-				
+							P05=~P05;
+							
 						flag_r =~flag_r;  }                 
 				}
-//dia();			
-	#ifdef otl 			
-				dia();
-	#endif			
 	}
 		
 		
-	
+	float u;	
 //____________________________________________________________________________________	
 	
 	
 	
 void main(void)
 	{
-		
-		
-		
-		
 		PCA0MD &= ~0x40;
-		
-	//	while (1)
-	//		delay(3);
-		/*
-			PCA0MD    &= ~0x40;   2ms
-			PCA0MD    = 0x02;
-			PCA0CPL4  = 0x5E;
-			PCA0MD    |= 0x40;
-			
-				PCA0MD    &= ~0x40;   20ms
-				PCA0MD    = 0x00;
-				PCA0CPL4  = 0x9E;
-				PCA0MD    |= 0x40;
-
-			
-			
-			
-		*/
-	
-		
-		
 											//temper = -12.1345;
 											//temper2 = (char)temper;
 											
@@ -1632,8 +1268,6 @@ void main(void)
 										   // razborka();
 								
 		_nop_();
-		rab=0;
-		cod_test = 18;	
 		init_param();
 					
 								
@@ -1700,11 +1334,11 @@ void main(void)
 					tes(k1,selekt);
 					_nop_();
 				}
-				null_x(1);
-											//	null_5 = 1;
-											//	null_4 = 1;
-											//	null_3 = 1;
-											//	null_2 = 1;
+		
+			null_5 = 1;
+			null_4 = 1;
+			null_3 = 1;
+			null_2 = 1;
 			
 												//	regen[0] ='1';
 												//	regen[1] ='2';
@@ -1716,12 +1350,10 @@ void main(void)
 			k2 = 1;
 			k22 = 1;
 			k222= 1;
-			k2222=1;
-			null_x(0);
-										//null_5 = 0;
-										//null_4 = 0;
-										//null_3 = 0;
-										//null_2 = 0;
+			null_5 = 1;
+			null_4 = 1;
+			null_3 = 1;
+			null_2 = 1;
 												//regen1 = 12345;
 											/*
 											while (1)
@@ -1744,21 +1376,11 @@ void main(void)
 													
 														Send_Packet();
 															P05=~P05;
-											}	*/
-			/*
-			null_5 = 1;
-												null_4 = 1;
-											null_3 = 1;
-									null_2 = 1;
-			rab =1;
-			flag_sleep= 0;
-												regen1 =12345;
-								*/		
-						
+											}	**/
+			
 			while (1)
-				//while (1);	
-				//	 PCA0CPH4 = 0x00; 					
-									/*		{
+										/*	
+										{
 													delay(50);	
 													write_spi_con(0x0d,IRQ1_TX_TXDONE);
 														write_spi_con(0x0e,(IRQ0_TX_START_FIFONOTEMPTY | IRQ1_PLL_LOCK_PIN_ON));
@@ -1799,163 +1421,6 @@ void main(void)
 	}
 //____________________________________________________________________________________
 
-
-void Ttimer1(void)
-{
-	 P2 = 0xff;
-			 if (P13)                //  второй слева разряд 
-				 {
-					P13 = 0;
-					P14 = 1;
-					
-					if (flag_temper)
-						if ((rab) & (!flag_sleep))
-							{P2= codtabl[temper2 %100 /10]; }    // два разряда температуры выводим по любому
-						else		
-							P2 = 0xff;
-					else
-							{
-								if (null_4)
-									{
-										if (rab)
-											if (!flag_sleep& (cviaz))
-											{
-												P2= codtabl[regen1  % 10000 / 1000];  //  4
-											}
-											else
-												P2 = 0xff;
-										else	
-											P2 = codtabl[cod_test];
-									}
-								else
-									if ((minus) & ((nex+1) == 4) & ((cviaz) & (!flag_sleep)))
-												P2 = codtabl[16];
-									else		
-												P2 = 0xff;
-							}
-				 }
-			else if (P14)              //  третий слева разряд  
-				{
-					P14 = 0;
-					P15 = 1;
-					if (flag_temper)
-						if ((rab) & (!flag_sleep))
-							{P2 = codtabl[temper2 % 10]; }         // два разряда температуры выводим по любому     
-						else		
-							P2 = 0xff;
-					else
-					{
-					if (null_3)
-						if (rab)
-								if (!flag_sleep& (cviaz))
-							{
-								P2= codtabl[regen1 % 1000/ 100 ];  // 3
-							}
-							else
-												P2 = 0xff;
-						else	
-							P2 = codtabl[cod_test];
-					else
-						if ((minus)& ((nex+1) == 3) & ((cviaz) & (!flag_sleep)))
-									P2 = codtabl[16];
-						else		
-						P2 = 0xff;
-					}
-				}
-			else if (P15)                //  четвертый слева разряд
-				{
-					P15 = 0;
-					P16 = 1;
-					if (flag_temper) 
-						if ((rab)& (!flag_sleep))
-							{P2 = 0x9c;}       // градус
-						else		
-							P2 = 0xff;
-					else
-					{	
-					if (null_2)
-					if (rab)	
-								if (!flag_sleep& (cviaz))
-							{
-								P2= codtabl[regen1 %100 /10];  // 2
-						 	}
-							else
-												P2 = 0xff;
-					else	
-							P2 = codtabl[cod_test];
-					else
-						 if ((minus)& ((nex+1) == 2) & ((cviaz) & (!flag_sleep)))
-									P2 = codtabl[16];
-						else		
-									P2 = 0xff;
-					}
-				}
-			else if (P16)                         // пятый слева или первый справа разряд ~~~~~~~~~~~~~~~~~~~~
-				{
-					P16 = 0;
-					P17 = 1;
-					if (flag_temper)
-						{
-							if (rab)
-							{
-							if (P4)
-								P2 = 0x39 &  codtabl[10+7];      // Цельсий
-							else if (flag_sleep)
-								P2 = codtabl[cod_test];
-							else
-								P2 = 0x39 ; 
-							}
-							else	
-								P2 = codtabl[cod_test];//0x39;  //0x9c; //codtabl[cod_test];
-						}
-					else
-						{
-						if ((rab)& (!flag_sleep& (cviaz)))
-							if (P4)
-								P2= codtabl[regen1 % 10] &  codtabl[10+7];      // 1
-							else
-								P2= codtabl[regen1 % 10] ;      // 1
-						else	
-							P2 = codtabl[cod_test];//0x39;  //0x9c; //codtabl[cod_test];
-						}
-				}
-			else if (P17)         // крайний слева разряд ~~~~~~~~~~~~~~~~~~~~~  //
-				{
-					P17 = 0;
-					P13 = 1;
-					if (flag_temper)
-						{
-							if (rab)
-									{
-									if (flag_temper_znak)
-										P2  = codtabl[16];    // знак минус      
-									else
-										P2 = 0xff;            // плюс не выводим
-									}
-								else
-										P2 = 0xff;
-						}
-					else
-						{
-						if (null_5)
-							if (rab)
-									if (!flag_sleep& (cviaz))
-								{
-									P2= codtabl[regen1 % 100000/10000];   // 5
-								}
-								else
-												P2 = 0xff;
-							else	
-								P2 = codtabl[cod_test];
-						else	
-							if ((minus)& ((nex+1) == 5) & ((cviaz) & (!flag_sleep)))
-										P2 = codtabl[16];
-							else
-										P2 = 0xff;
-						}
-				}
-}
-
 	
 		
 	//***********************************************
@@ -1970,155 +1435,121 @@ void Ttimer1(void)
 		{   
 				
 			 TR0=0;
-			 PCA0CPH4 = 0x00;  
-			 Ttimer1();
-			 tara_proc();
+			 P2 = 0xff;
+			 if (P13)                //  второй слева разряд 
+				 {
+					P13 = 0;
+					P14 = 1;
+					if (flag_temper)
+							{P2= codtabl[temper2 %100 /10]; }    // два разряда температуры выводим по любому
+					else
+							{
+								if (null_4)
+									if (rab)
+										{
+											P2= codtabl[regen1  % 10000 / 1000];  //  4
+										}
+									else	
+										P2 = codtabl[cod_test];
+								else
+									if ((minus) & ((nex+1) == 4))
+												P2 = codtabl[16];
+									else		
+												P2 = 0xff;
+							}
+				 }
+			else if (P14)              //  третий слева разряд  
+				{
+					P14 = 0;
+					P15 = 1;
+					if (flag_temper)
+						{P2 = codtabl[temper2 % 10]; }         // два разряда температуры выводим по любому     
+					else
+					{
+					if (null_3)
+						if (rab)
+							{
+								P2= codtabl[regen1 % 1000/ 100 ];  // 3
+							}
+						else	
+							P2 = codtabl[cod_test];
+					else
+						if ((minus)& ((nex+1) == 3))
+									P2 = codtabl[16];
+						else		
+						P2 = 0xff;
+					}
+				}
+			else if (P15)                //  четвертый слева разряд
+				{
+					P15 = 0;
+					P16 = 1;
+					if (flag_temper)
+						{P2 = 0x9c;}       // градус
+					else
+					{	
+					if (null_2)
+					if (rab)	
+							{
+								P2= codtabl[regen1 %100 /10];  // 2
+						 	}
+					else	
+							P2 = codtabl[cod_test];
+					else
+						 if ((minus)& ((nex+1) == 2))
+									P2 = codtabl[16];
+						else		
+									P2 = 0xff;
+					}
+				}
+			else if (P16)                         // пятый слева или первый справа разряд
+				{
+					P16 = 0;
+					P17 = 1;
+					if (flag_temper)
+						{
+							P2 = 0x39;      // Цельсий
+						}
+					else
+						{
+						if (rab)
+							P2= codtabl[regen1 % 10];      // 1
+						else	
+							P2 = codtabl[cod_test];//0x39;  //0x9c; //codtabl[cod_test];
+						}
+				}
+			else if (P17)         // крайний слева разряд
+				{
+					P17 = 0;
+					P13 = 1;
+					if (flag_temper)
+						{
+							if (flag_temper_znak)
+								P2  = codtabl[16];    // знак минус      
+							else
+								P2 = 0xff;            // плюс не выводим
+						}
+					else
+						{
+						if (null_5)
+							if (rab)
+								{
+									P2= codtabl[regen1 % 100000/10000];   // 5
+								}
+							else	
+								P2 = codtabl[cod_test];
+						else	
+							if ((minus)& ((nex+1) == 5))
+										P2 = codtabl[16];
+							else
+										P2 = 0xff;
+						}
+				}
 			
-			 TR0=1;
+			TR0=1;
 
 		}
 //____________________________________________________________________________________		
-
-
-//
-	//  1.  нет связи    - -             - -
-	//  2. есть связь    -               -
-	//                   1 2 3   4       5 6 7     такты
-	//         1 3 5 7   0.25мсек
-	//            2 6    0.5мсек
-	//            4      7сек
-	
-#ifdef rabota 	
-	void Timer1_int (void) interrupt INTERRUPT_TIMER1				// 25.03.15
-		{
-			if (stcv)					// 27.03.15
-				{
-					stcv2 = 1;
-					ms2++;
-					if (ms2 > 30)
-						{
-							if (cviaz_flag)
-								{
-									cviaz = 0;
-									mode=1;
-									ms = 0;
-									cviaz_flag = 0;
-								}
-							ms2=0;
-							stcv= 0;
-							//rab = 0;
-							null_x(0);
-													//null_5 = 0;
-												//null_4 = 0;
-												//null_3 = 0;
-												//null_2 = 0;
-							
-						}
-				}
-			/*
-			if(!cviaz)
-					
-					{
-						switch (mode) {
-							case 1:
-								mode++;
-									cod_test = 18;
-							//	P04 =0;
-								break;
-							case 2:
-								ms++;
-								if (ms >= 32)    //432
-								{
-									mode=1;
-									ms = 0;
-										cod_test = 10+4;
-								//	P04 = 1;
-								}
-								
-								break;
-							
-							
-						}
-					}
-					*/
-			if ((rab) &(flag_sleep | (!cviaz)))
-			{		
-			if(!cviaz)
-					{
-						
-							
-						
-						switch (mode) {
-							case 1:
-									ms= 0;
-									mode=2;
-									cod_test = 18;
-									//P04 =0;
-								break;
-							case 2:
-								ms++;
-								if (ms >= 30)	  // 30
-									{
-										mode=3;
-										ms = 0;
-										cod_test = 10+4;
-										//P04 = 1;
-									}
-								
-								break;
-							case 3:
-								mode=4;
-								cod_test = 18;
-								//P04 = 0;
-								break;
-							case 4:
-								ms++;
-								if (ms >= 250)      // 332
-								{
-									mode=1;
-									ms = 0;
-									cod_test = 10+4;
-									//P04 = 1;
-								}
-							
-								break;
-							
-						}		
-					}
-			else
-					{
-						switch (mode) {
-							case 1:
-								mode++;
-								if (!flag_sleep)
-								P4 =0;   // ??????????????????????????
-								else
-									cod_test = 18;	
-								break;
-							case 2:
-								ms++;
-								if (ms > 322)
-								{
-									mode=1;
-									ms = 0;
-										if (!flag_sleep)
-									P4 = 1;  //??????????????????????
-								else
-									cod_test = 10+4;
-								}
-								
-								break;
-							default:
-							  mode = 1;
-							
-						}
-					}		
-			}		
-		}
-#endif	
-	// 25.03.15
-
-
 	
 	//*****************************
 	//
@@ -2174,56 +1605,26 @@ void Ttimer1(void)
 	//*****************************
 	//
 	//  Секундная метка
-	//       тайм-аут приема   
-	//       таймкр на 10 сек для сброса температуры
 	//
 	//*****************************
 		
 		
 	void Timer3_int (void) interrupt INTERRUPT_TIMER3
 	{
-			TMR3CN &= ~0x80; 
-			flag_peredacha = 1;
+		TMR3CN &= ~0x80; 
+		flag_peredacha = 1;
 			if (startt)
-				{
-					msek2++;
-					if (msek2 > 5)   //  тайм-аут приема      // 07.04.15
-					{
-						startt = 0;
-						msek2 = 0;
-						flag_r = 1;  //  начать передачу     // 07.04.15
-															//cviaz = 0;    //??????????????     // 07.04.15
-															//mode=1;       //???????????     // 07.04.15
-						reseach_flag = 0;
-					}
-				}	
-		
-		    if (start_sleep)
+		{
+			msek2++;
+			if (msek2 > 5)
 			{
-				msek3++;
-				if (msek3 > 100)
-				{
-					start_sleep = 0;
-					stop_sleep = 1;
-					msek3 = 0;
-				}
+				startt = 0;
+				msek2 = 0;
+				flag_r = 1;
+				
+			reseach_flag = 0;
 			}
-		
-			if (start_1_10)								// таймкр на 10 сек для сброса температуры
-					{
-						msek_1_10++;
-						if (msek_1_10 > 500)
-							{
-								start_1_10 	= 0;
-								msek_1_10 	= 0;
-								flag_1_10 	= 1;
-								//right_new=~right_new;
-								flag_temper  = 0;
-								k22++; 
-								//reseach_flag = 0;
-							}
-					}
-		
+		}	
 		/*	
 			if (start_1_5)								// таймкр на 5 сек
 				{
@@ -2260,14 +1661,6 @@ void Ttimer1(void)
 				}	*/
 	}
 //____________________________________________________________________________________
-	/*
-void delay2(unsigned  char k)	
-{
-	unsigned char i;
-	for (i=0;i<k;i++)
-		_nop_();
-}
-	*/
 	
 	//*************************************************
 	//
@@ -2286,15 +1679,12 @@ void delay2(unsigned  char k)
 																				//	cs_con = 0;
 
 		CSCON = 0;
-		//delay2(5);
 		command = WR1;
 		SPI0DAT = t;
 		A2 = value;
 		while (command != NU);
 		CSCON = 1;
-		//delay2(5);
-									// 08.04.15
-		
+
 	}
 	
 //____________________________________________________________________________________	
@@ -2319,7 +1709,6 @@ void delay2(unsigned  char k)
 																			//    cs_con = 0;
 
 			CSCON = 0;
-		//	delay2(5);
 			SPI0DAT = t;
 			while (command != NU);
 			command = RD;
@@ -2328,11 +1717,6 @@ void delay2(unsigned  char k)
 			while (command != NU);
 			A3 =  SPI0DAT;
 		   	CSCON = 1;
-		//	delay2(5);
-			
-									// 08.04.15
-		
-		
 		return (A3);
 	}
 //____________________________________________________________________________________	
@@ -2349,41 +1733,29 @@ void delay2(unsigned  char k)
 
 	{
 			CSDAT =0;
-//		delay2(5);
 			while (command != NU);
 			command = WR2;
 			SPI0DAT = Dat;
 			while (command != NU);
 			CSDAT = 1;
-	//		delay2(5);
 	}
 	
 //____________________________________________________________________________________	
-	/*void kuzia(void)
-	{
-			mcparam0_read = read_spi_con(REG_MCPARAM0);
-	if  ( (  mcparam0_read & 0x10) == 0x10)
-		_nop_();
-	}
-	*/
 	
-		void SetRFMode_my( unsigned char mode)
+	
+	
+		void SetRFMode_my( char mode)
 {
-	// unsigned char	mcparam0_read;
-//	kuzia();
+	 char	mcparam0_read;
 	mcparam0_read = read_spi_con(REG_MCPARAM0);
-
-	switch (mode) 
-	{
+	switch (mode) {
 		case RF_TRANSMITTER:
 			write_spi_con(REG_MCPARAM0, (mcparam0_read & 0x1F) | RF_TRANSMITTER);
-			RF_Mode = RF_TRANSMITTER;				//RF in TX mod
-			//kuzia();
+			RF_Mode = RF_TRANSMITTER;				//RF in TX mode
 			break;
 		case RF_RECEIVER:
 			write_spi_con(REG_MCPARAM0, (mcparam0_read & 0x1F) | RF_RECEIVER);
 			RF_Mode = RF_RECEIVER;					//RF in RX mode
-			//kuzia();
 			break;
 		case RF_SYNTHESIZER:
 			write_spi_con(REG_MCPARAM0, (mcparam0_read & 0x1F) | RF_SYNTHESIZER);
@@ -2448,7 +1820,7 @@ unsigned char ReadFIFO(void)
 					diagnoz[8] = read_spi_con(0x1e);    // PKTCREG: PACKET CONFIGURATION REGISTER
 				    diagnoz[9] = read_spi_con(0x05);    // FIFOCREG: FIFO CONFIGURATION REGISTER 
 				    diagnoz[10] = read_spi_con(0x1f);   // FCRCREG: FIFO CRC CONFIGURATION REGISTER
-						    diagnoz[11] = read_spi_con(0x1);  																												//a=0;
+																																	//a=0;
 																																    //	di_();
 				}	
 #endif		
@@ -2497,7 +1869,7 @@ unsigned char ReadFIFO(void)
 			
 	void Send_Packet_my(void)
 	{
-		unsigned char i;
+		unsigned int i;
 #ifdef otl3			
 		P03=1;
 #endif		
@@ -2506,13 +1878,9 @@ unsigned char ReadFIFO(void)
 		SetRFMode_my(RF_STANDBY);
 		
 		write_spi_con(0x1F, ((InitConfigRegsPer[0x1F] & 0xBF)| FIFO_STBY_ACCESS_WRITE));
-		//dia();
 		write_spi_con(0x0D, (InitConfigRegsPer[0x0D] | IRQ1_FIFO_OVERRUN_CLEAR ));
-		//dia();
 		write_spi_con(0x0E, ((InitConfigRegsPer[0x0E]) | 0x02));
-		//dia();
 		write_spi_con(0x16, 0x97);	//на передачу
-		
 		
 #ifdef otl		
 		dia();
@@ -2522,25 +1890,17 @@ unsigned char ReadFIFO(void)
 		zj.Int++;							
 #endif	
 		WriteFIFO(0x23);    //Node_adrs
-		_nop_();							// 08.04.15
-		_nop_();
-		_nop_();
-		_nop_();
 #ifdef otl3			
 		WriteFIFO(zj.Char[1]);	
 		WriteFIFO(zj.Char[0]);	
-		
-#endif		
 		init_TX();
+#endif		
+		
 		for(i=0; i< 24; i++)
 		{
-		WriteFIFO(TxPacket[i]);     //  задержка
-		_nop_();							// 08.04.15
-		_nop_();
-		_nop_();
-		_nop_();
+		WriteFIFO(TxPacket[i]);
 		}
-		delay(50);							
+									
 
 									//до этого момента на ноге прерывания 0
 		SetRFMode_my(RF_TRANSMITTER);
@@ -2550,8 +1910,8 @@ unsigned char ReadFIFO(void)
 	dia();
 #endif			
 
-	delay(50);	//????????????????????????????????????????  150							// 08.04.15
-//dia();	
+	delay(10);	
+	
 #ifdef otl3	
 		P03=0;
 #endif		
@@ -2562,7 +1922,7 @@ unsigned char ReadFIFO(void)
 	
 	void Send_Packet(void)
 	{
-		unsigned char ia;
+		unsigned char i;
 	//while(!(flag_int1));
 		flag_int1 = 0;
 									//здесь должно на ноге irq1 появиться лог 1
@@ -2578,20 +1938,17 @@ unsigned char ReadFIFO(void)
 		_nop_();
 		_nop_();
 		}
-//dia();
-delay(2);
+
 		SetRFMode_my(RF_STANDBY);							//	INTCONbits.GIE = 1;   //?
 #ifdef otl			
 		dia();
 #endif		
-		//dia();
+		
 		
 		//Reset FIFO  очистить буфер после передачи
-		ia = read_spi_con(REG_IRQPARAM0);
-		write_spi_con(REG_IRQPARAM0, (ia | 0x01));
-		//dia();
+		i = read_spi_con(REG_IRQPARAM0);
+		write_spi_con(REG_IRQPARAM0, (i | 0x01));
 		send_flag = 0;
-		delay(10);
 
 	}	
 //____________________________________________________________________________________	
@@ -2605,26 +1962,21 @@ void  ReceiveFrame_my(void)
 			P03=~1;
 #endif			
 			SetRFMode_my(RF_STANDBY);
-			//dia();
+			
 			///////////////////////
-			write_spi_con(0x1F, (((FIFO_AUTOCLR_ON | FIFO_STBY_ACCESS_READ) & 0xBF)| FIFO_STBY_ACCESS_READ)|FIFO_AUTOCLR_ON);// 
-			//dia();
+			write_spi_con(0x1F, (((FIFO_AUTOCLR_ON | FIFO_STBY_ACCESS_READ) & 0xBF)| FIFO_STBY_ACCESS_READ)|FIFO_AUTOCLR_OFF);// 
 			write_spi_con(0x0D, (IRQ0_RX_STDBY_FIFOEMPTY | IRQ1_RX_STDBY_CRCOK | IRQ1_FIFO_OVERRUN_CLEAR ));
-			//dia();
 			write_spi_con(0x0E, (IRQ1_PLL_LOCK_PIN_ON | 0x02));
-			//dia();
 											//	write_spi_con(0x16, 0x97);		   // 0x97
 											//EX0 = 1;
 											//EX1 = 1;
 			SetRFMode_my(RF_RECEIVER);
-			//dia();
 												//EX0 = 1;
 											//EX1 = 1;
 
 											//	dia();
 			init_RX();
 			reseach_flag = 1;
-			delay(50);						// 06.04.15							// 08.04.15
 #ifdef otl3				
 													P03=~0;
 #endif				
@@ -2654,10 +2006,6 @@ void  ReceiveFrame_my(void)
 			flag_int0 = 0;
 			node_adrs = ReadFIFO();
 			RxPacketLen = (RxPacketLen-1);
-			_nop_();
-		_nop_();							// 08.04.15
-		_nop_();
-		_nop_();
 	
 			i = 0;
 			while(RxPacketLen--)
@@ -2666,10 +2014,6 @@ void  ReceiveFrame_my(void)
 			dat = ReadFIFO();
 			RxPacket[i] = dat;
 			i++;
-			_nop_();						// 08.04.15
-		_nop_();
-		_nop_();
-		_nop_();
 			};
 		RxPacketLen = i;
 		i2 = (sizeof(struct pac));
@@ -2690,28 +2034,14 @@ void  ReceiveFrame_my(void)
 										}
 #endif			
 	flag_int1 = 0;
-//dia();
+
 		///////////////// write_spi_con(0x0D, (0x0a));	//перезагрузить фифо
 		//Reset FIFO
 			i = read_spi_con(REG_IRQPARAM0);
 		    write_spi_con(REG_IRQPARAM0, (i | 0x01));
-//dia();			
-		//if (stop_nn)
-		//	nn++;
-		
-		
+			
 			reseach_flag = 0;
 			send_flag = 0;
-			startt = 0;     // 07.04.15
-			msek2 = 0;     // 07.04.15
-			
-			
-		//if (nn > 200)
-		//{
-		//	nn = 0;
-		//	stop_nn = 0;
-		//}	
-			delay(50);
 			return node_adrs;
 			
 		}
